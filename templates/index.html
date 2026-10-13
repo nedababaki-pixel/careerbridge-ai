@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CareerBridge AI</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#f1f1fc;background:#0d1021}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top left,#26235b,#0d1021 65%);min-height:100vh}main{max-width:1050px;margin:auto;padding:52px 24px}header{margin-bottom:34px}.tag{color:#b6a8ff;letter-spacing:2px;font-weight:700;font-size:12px}h1{font-size:clamp(38px,6vw,70px);letter-spacing:-2px;margin:12px 0}h1 span{color:#ad94ff}p{color:#b8bdd4;line-height:1.6}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{background:#1a1e37;border:1px solid #383957;border-radius:18px;padding:22px}label{font-weight:700;display:block;margin-bottom:12px}textarea{width:100%;min-height:250px;resize:vertical;background:#101428;color:white;border:1px solid #484a6b;border-radius:12px;padding:16px;font:15px/1.5 inherit}textarea:focus{outline:2px solid #a994ff}button{background:#a58cff;color:#100d21;border:0;border-radius:12px;padding:16px 28px;font-size:16px;font-weight:800;cursor:pointer;margin-top:22px}button:disabled{opacity:.6;cursor:wait}
+#result{line-height:1.7;overflow-wrap:anywhere}
+#result h1,#result h2,#result h3{color:#d6ccff;margin:22px 0 8px}
+#result ul{padding-left:22px}
+#result li{margin:6px 0}
+#result hr{border:0;border-top:1px solid #383957;margin:22px 0}
+#result strong{color:#fff}
+#output{margin-top:24px}footer{font-size:12px;margin-top:32px;color:#9a9fb9}@media(max-width:700px){.grid{grid-template-columns:1fr}main{padding:32px 16px}}
+</style></head><body><main><header><div class="tag">✦ YOUR AI CAREER COPILOT</div><h1>CareerBridge <span>AI</span></h1><p>Turn your experience into opportunity. Compare your CV with a job opening and generate tailored application advice.</p></header><div class="grid"><section class="panel"><label for="cv">01 / Your CV</label><textarea id="cv" placeholder="Paste your CV text here..." maxlength="12000"></textarea></section><section class="panel"><label for="job">02 / Job description</label><textarea id="job" placeholder="Paste the job advertisement here..." maxlength="12000"></textarea></section></div><button id="analyze">✦ Analyze my match</button><section id="output" class="panel" hidden><h2>Your AI career report</h2><div id="result" role="status" aria-live="polite"></div></section><footer>AI-generated suggestions can be inaccurate. Review everything before applying. Avoid submitting sensitive personal data.</footer></main>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script>
+const button=document.getElementById('analyze'),output=document.getElementById('output'),result=document.getElementById('result');
+button.addEventListener('click',async()=>{
+  output.hidden=false;
+  result.textContent='Analyzing your application…';
+  button.disabled=true;
+  try{
+    const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cv:document.getElementById('cv').value,job:document.getElementById('job').value})});
+    const data=await response.json();
+    if(response.ok){
+      result.innerHTML=DOMPurify.sanitize(marked.parse(data.result));
+    }else{
+      result.textContent=data.error||'Something went wrong.';
+    }
+  }catch{
+    result.textContent='Connection error. Please try again.';
+  }finally{
+    button.disabled=false;
+  }
+});
+</script></body></html>
