@@ -1,5 +1,7 @@
 # CareerBridge AI
 
+[![Tests](https://github.com/nedababaki-pixel/careerbridge-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/nedababaki-pixel/careerbridge-ai/actions/workflows/tests.yml)
+
 An AI-powered assistant that compares a CV with a job advertisement and suggests how to close the gap.
 Built with **Python, Flask** and the **Google Gemini API**.
 
