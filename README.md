@@ -2,42 +2,37 @@
 
 [![Tests](https://github.com/nedababaki-pixel/careerbridge-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/nedababaki-pixel/careerbridge-ai/actions/workflows/tests.yml)
 
-An AI-powered assistant that compares a CV with a job advertisement and suggests how to close the gap.
-Built with **Python, Flask** and the **Google Gemini API**.
+Compare a CV with a job advertisement and get an honest, structured comparison: an AI-estimated match score, the skills the CV already shows, the requirements it does not show, concrete CV suggestions and a cover letter draft.
 
-**Author:** Saiedeh Babaki · Stockholm, Sweden
+Built with **Python, Flask** and the **Google Gemini API**, and hosted with **Gunicorn and Nginx on AWS EC2**. This is the first web application I built and hosted on AWS during my internship at Nation Enterprises; version 2 improves its security, reliability, design and test coverage.
 
-![CareerBridge AI start page](docs/screenshot.png)
+**Author:** Saiedeh Babaki, Stockholm, Sweden
 
-## What it does
+![CareerBridge AI comparison results](docs/screenshots/v2-result.png)
 
-Paste a CV and a job advertisement. CareerBridge AI returns:
+## Features
 
-- **Match summary** – how well the CV fits the role
-- **Strengths** – what already matches
-- **Skill gaps** – what is missing
-- **CV improvements** – concrete suggestions
-- **Cover letter draft** – a first draft based only on what the CV actually says
+- **Structured AI analysis** – Gemini answers in a fixed JSON schema: match score (shown as an *AI estimate*, not a hiring prediction), matching skills, missing skills, CV suggestions and a cover letter draft.
+- **PDF and DOCX upload** – the text is extracted in memory and placed in the form so you can check it first. Files are never stored.
+- **English or Swedish results** – useful for Swedish job ads. The interface is in English.
+- **Honest by design** – the prompt forbids invented qualifications and exaggerated experience.
+- **Accessible, responsive interface** – dark and light themes, keyboard support, screen-reader friendly messages, mobile layout. No third-party scripts.
+- **Copy and download** – copy the cover letter or download the full report as a text file.
+
+| Phone | Light theme | Form validation |
+|---|---|---|
+| <img src="docs/screenshots/v2-mobile-result.png" alt="Results on a phone" width="200"> | <img src="docs/screenshots/v2-light.png" alt="Results in the light theme" width="320"> | <img src="docs/screenshots/v2-validation.png" alt="Clear validation messages" width="320"> |
 
 ## Tech stack
 
 | Area | Technology |
 |---|---|
-| Backend | Python 3.10+, Flask |
-| AI | Google Gemini API (REST, default model `gemini-3.8-flash`) |
-| Frontend | HTML, CSS and JavaScript in one template, responsive layout |
-| Testing | pytest – 15 automated tests, Gemini API mocked |
-| Production server | Gunicorn (included in `requirements.txt`) |
-
-## Security by design
-
-- The Gemini API key stays on the server (`.env`, never committed) and is sent in a request header, never in the URL or to the browser.
-- Input validation: both fields need at least 30 and at most 12,000 characters.
-- The CV and job ad are treated as untrusted data in the prompt, to reduce prompt-injection risk.
-- The prompt tells the model not to invent qualifications or exaggerate experience.
-- Errors from the AI service are shown as a friendly message, without internal details.
-- No CV data is stored in a database.
-- A `/health` endpoint is available for monitoring.
+| Backend | Python 3.10+, Flask, Flask-Limiter, requests |
+| AI | Google Gemini API, structured JSON output (default model `gemini-3.8-flash`) |
+| Files | pypdf, python-docx |
+| Frontend | HTML, CSS and JavaScript without frameworks or CDNs; self-hosted fonts |
+| Testing | pytest, Playwright (Chromium), axe-core – 124 tests, GitHub Actions CI |
+| Hosting | AWS EC2, Linux, Gunicorn, Nginx reverse proxy; v2 adds systemd and HTTPS with Let's Encrypt (configuration in `deploy/`, not yet live) |
 
 ## Run locally
 
@@ -45,39 +40,60 @@ Paste a CV and a job advertisement. CareerBridge AI returns:
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env               # then add your Gemini API key
+cp .env.example .env               # then add your Gemini API key in .env
 python app.py
 ```
 
-Open http://127.0.0.1:5055.
+Open http://127.0.0.1:5055 and click **Try an example**.
+Without a key the app still starts and explains that the AI key is not configured.
 
 ## Run the tests
 
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest -v
+python -m playwright install chromium
+python -m pytest                    # 124 tests, no API key or internet needed
 ```
 
-The tests cover the pages, the health check, input validation, API key handling, model selection, prompt safety and error handling.
-The Gemini API is replaced by fake responses, so no API key or internet connection is needed.
+See [docs/TESTING.md](docs/TESTING.md) for what each suite covers.
 
-## Deploying to AWS (guide)
+## Security and privacy
 
-This repository contains the application only. It does **not** include Terraform or server configuration files.
-A typical production setup on an AWS EC2 instance:
+- The API key stays on the server and is never logged, sent to the browser or put in a URL.
+- CV text and files are processed in memory, not stored, not logged and not cached.
+- Strict Content-Security-Policy and security headers; AI output is inserted as plain text.
+- Input validation, request size limits and rate limiting protect the API key from abuse.
+- In production, port 80 only redirects to HTTPS, so CV data is never sent unencrypted.
+- The CV and job ad are sent to the Google Gemini API to create the comparison.
 
-- Gunicorn as the WSGI server, with Nginx as a reverse proxy and HTTPS
-- Security groups that only open the ports that are needed
-- The API key stored as a server-side secret, not in the code
-- Never expose Flask's development server to the internet
+Details: [docs/SECURITY.md](docs/SECURITY.md).
 
-Note: AWS usage can incur charges.
+## Deployment
+
+The [deploy](deploy) folder contains a Gunicorn config, a hardened systemd service, an Nginx config for HTTP (port 80 → redirect) and HTTPS (port 443), Let's Encrypt setup and renewal, and two **read-only** check scripts for the server and the public site.
+Step-by-step guide, HTTPS options without a domain and test results: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Project structure
+
+```
+app.py                 Flask app: routes, validation, security headers, rate limits, Gemini call
+analysis.py            Prompt, JSON schema and validation of the AI answer
+cv_extract.py          Safe text extraction from PDF and DOCX files
+templates/index.html   Page structure
+static/                CSS, JavaScript, fonts and icon
+tests/                 Unit, security and upload tests; tests/e2e: browser and accessibility tests
+deploy/                Gunicorn, systemd, Nginx, Certbot and check scripts
+docs/                  Architecture, security, testing, deployment, screenshots
+```
+
+Architecture and API reference: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Version history: [CHANGELOG.md](CHANGELOG.md).
 
 ## Limitations
 
-- Submitted text is sent to the Gemini API provider. Do not upload sensitive CV data without consent and a privacy policy.
-- A public deployment would also need rate limiting, abuse protection and a privacy/legal review.
+- The score is an AI estimate based only on the text provided. It can be wrong and says nothing certain about a recruitment outcome.
+- Scanned PDFs (images) cannot be read; paste the text instead.
+- The default rate limit is stored per server process. Use a shared store such as Redis for several servers.
 
 ## License
 
-[MIT](LICENSE) © 2026 Saiedeh Babaki
+[MIT](LICENSE) © 2026 Saiedeh Babaki. Fonts: Bricolage Grotesque and Atkinson Hyperlegible, SIL Open Font License (see `static/fonts`).
