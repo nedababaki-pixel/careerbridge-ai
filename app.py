@@ -18,7 +18,7 @@ import cv_extract
 
 load_dotenv()
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
@@ -185,7 +185,8 @@ def analyze():
         response = requests.post(
             GEMINI_URL.format(model=model),
             headers={"x-goog-api-key": key, "Content-Type": "application/json"},
-            json=analysis.build_request(cv, job, language),
+            json=analysis.build_request(cv, job, language,
+                                        analysis.normalise_thinking_level(os.getenv("GEMINI_THINKING_LEVEL"))),
             timeout=(GEMINI_CONNECT_TIMEOUT, GEMINI_READ_TIMEOUT),
         )
     except requests.Timeout:

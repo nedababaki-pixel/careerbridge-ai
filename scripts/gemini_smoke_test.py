@@ -13,6 +13,10 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Fail faster than the app's normal 90 s wait, so a problem shows up within a minute.
+os.environ.setdefault("GEMINI_TIMEOUT", "60")
+
+import analysis  # noqa: E402
 import app as app_module  # noqa: E402  (loads .env)
 
 CV = """Alex Lindqvist (fictional example). IT Operations Technician student, Stockholm.
@@ -31,7 +35,8 @@ def main() -> int:
     if key.lower() in app_module.PLACEHOLDER_KEYS:
         print("GEMINI_API_KEY is not set. Add it to .env first (never commit .env).")
         return 2
-    print(f"Model: {os.getenv('GEMINI_MODEL', 'gemini-3.8-flash')}  (key found, not shown)")
+    print(f"Model: {os.getenv('GEMINI_MODEL', 'gemini-3.8-flash')}, thinking level: "
+          f"{analysis.normalise_thinking_level(os.getenv('GEMINI_THINKING_LEVEL')) or 'model default'}  (key found, not shown)")
     app_module.limiter.enabled = False
     client = app_module.app.test_client()
     ok = True

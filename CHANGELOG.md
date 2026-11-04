@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.1 – 2026-11
+
+### Fixed
+- Real Gemini requests timed out after 90 s. Gemini 3 Flash models "think" at level medium by default, which made the structured answer too slow. The app now sends `thinkingConfig.thinkingLevel = low` (setting `GEMINI_THINKING_LEVEL`; empty = model default).
+
+### Added
+- `scripts/gemini_diagnose.py`: fast checks with short timeouts (key and access, model availability, tiny answer, real request with low thinking).
+- `scripts/gemini_smoke_test.py` now stops after 60 s instead of 90 s and shows the thinking level.
+- 12 tests for the thinking setting and the diagnostic script (149 in total).
+
 ## 2.1.0 – 2026-11 (branch `feature/v2-ui-polish`)
 
 Interface polish for the portfolio submission. No backend or API changes.

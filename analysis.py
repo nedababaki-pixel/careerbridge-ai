@@ -91,15 +91,34 @@ def build_prompt(cv: str, job: str, language: str = "en") -> str:
     )
 
 
-def build_request(cv: str, job: str, language: str = "en") -> dict:
+# Gemini 3 models "think" before answering. The default level (medium or high) can make a
+# structured answer take more than a minute; "low" keeps answers fast and is enough for this task.
+DEFAULT_THINKING_LEVEL = "low"
+THINKING_LEVELS = {"minimal", "low", "medium", "high"}
+
+
+def normalise_thinking_level(value) -> str | None:
+    """Return a valid thinking level, or None to let the model use its own default."""
+    if value is None:
+        return DEFAULT_THINKING_LEVEL
+    value = str(value).strip().lower()
+    if value in {"", "default", "off", "none"}:
+        return None
+    return value if value in THINKING_LEVELS else DEFAULT_THINKING_LEVEL
+
+
+def build_request(cv: str, job: str, language: str = "en", thinking_level: str | None = DEFAULT_THINKING_LEVEL) -> dict:
     """Request body for the Gemini generateContent endpoint."""
+    config = {
+        "responseMimeType": "application/json",
+        "responseSchema": RESPONSE_SCHEMA,
+        "temperature": 0.3,
+    }
+    if thinking_level:
+        config["thinkingConfig"] = {"thinkingLevel": thinking_level}
     return {
         "contents": [{"role": "user", "parts": [{"text": build_prompt(cv, job, language)}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": RESPONSE_SCHEMA,
-            "temperature": 0.3,
-        },
+        "generationConfig": config,
     }
 
 

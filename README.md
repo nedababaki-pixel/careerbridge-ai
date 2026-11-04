@@ -35,7 +35,7 @@ Built with **Python, Flask** and the **Google Gemini API**, and hosted with **Gu
 | AI | Google Gemini API, structured JSON output (default model `gemini-3.8-flash`) |
 | Files | pypdf, python-docx |
 | Frontend | HTML, CSS and JavaScript without frameworks or CDNs; self-hosted fonts |
-| Testing | pytest, Playwright (Chromium), axe-core – 137 tests, GitHub Actions CI |
+| Testing | pytest, Playwright (Chromium), axe-core – 149 tests, GitHub Actions CI |
 | Hosting | AWS EC2, Linux, Gunicorn, Nginx reverse proxy; v2 adds systemd and HTTPS with Let's Encrypt (configuration in `deploy/`, not yet live) |
 
 ## Run locally
@@ -56,7 +56,7 @@ Without a key the app still starts and explains that the AI key is not configure
 ```bash
 pip install -r requirements-dev.txt
 python -m playwright install chromium
-python -m pytest                    # 137 tests, no API key or internet needed
+python -m pytest                    # 149 tests, no API key or internet needed
 ```
 
 See [docs/TESTING.md](docs/TESTING.md) for what each suite covers.
@@ -64,7 +64,8 @@ See [docs/TESTING.md](docs/TESTING.md) for what each suite covers.
 To check the **real** Gemini integration once with your own key (two API requests, English and Swedish; the key is never printed):
 
 ```bash
-python scripts/gemini_smoke_test.py
+python scripts/gemini_diagnose.py     # fast checks: key, model, response time (short timeouts)
+python scripts/gemini_smoke_test.py    # full comparison in English and Swedish
 ```
 
 A step-by-step demo script is in [docs/DEMO.md](docs/DEMO.md).
@@ -94,7 +95,7 @@ cv_extract.py          Safe text extraction from PDF and DOCX files
 templates/index.html   Page structure
 static/                CSS, JavaScript, fonts and icon
 tests/                 Unit, security and upload tests; tests/e2e: browser and accessibility tests
-scripts/               gemini_smoke_test.py: one real Gemini check with your own key
+scripts/               gemini_diagnose.py and gemini_smoke_test.py: real Gemini checks with your own key
 deploy/                Gunicorn, systemd, Nginx, Certbot and check scripts
 docs/                  Architecture, security, testing, deployment, screenshots
 ```
