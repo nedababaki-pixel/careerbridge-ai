@@ -50,7 +50,7 @@ def main() -> int:
             print(f"[{language}] FAILED: HTTP {response.status_code} – {body.get('error')} ({seconds:.1f} s)")
             continue
         a = body["analysis"]
-        print(f"[{language}] OK in {seconds:.1f} s: score {a['match_score']}% ({a['score_label']}), "
+        print(f"[{language}] OK in {seconds:.1f} s (model {body.get('model')}): score {a['match_score']}% ({a['score_label']}), "
               f"{len(a['matching_skills'])} found, {len(a['missing_skills'])} missing, "
               f"{len(a['suggestions'])} suggestions, cover letter {len(a['cover_letter'].split())} words")
         print(f"     summary: {a['summary'][:160]}")

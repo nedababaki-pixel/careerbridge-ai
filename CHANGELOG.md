@@ -8,7 +8,9 @@
 ### Added
 - `scripts/gemini_diagnose.py`: fast checks with short timeouts (key and access, model availability, tiny answer, real request with low thinking).
 - `scripts/gemini_smoke_test.py` now stops after 60 s instead of 90 s and shows the thinking level.
-- 12 tests for the thinking setting and the diagnostic script (149 in total).
+- Clear message when Google reports the model as overloaded ("high demand", HTTP 503).
+- Optional `GEMINI_FALLBACK_MODEL`: tried once if the main model is overloaded (503) or rate-limited (429); not used for other errors or timeouts. The answer includes which model was used.
+- 20 tests for the thinking setting, the fallback model and the diagnostic script (157 in total).
 
 ## 2.1.0 – 2026-11 (branch `feature/v2-ui-polish`)
 

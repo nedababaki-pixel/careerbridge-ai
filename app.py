@@ -36,6 +36,7 @@ GEMINI_CONNECT_TIMEOUT = 10
 GEMINI_READ_TIMEOUT = int(os.getenv("GEMINI_TIMEOUT", "90"))  # keep below Gunicorn's timeout (120 s)
 PLACEHOLDER_KEYS = {"", "replace_with_your_key", "your_api_key", "changeme"}
 MODEL_NAME = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+BUSY_STATUSES = {429, 503}  # Gemini: rate limit / model overloaded ("high demand")
 
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; "
@@ -180,25 +181,39 @@ def analyze():
         log.error("GEMINI_MODEL contains invalid characters")
         return api_error("Server AI model is not configured correctly.", 503)
 
+    # Try the main model first. If Google reports it as overloaded (503) or rate-limited (429),
+    # try the optional fallback model once. Timeouts are not retried, to keep the wait short.
+    fallback = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
+    models = [model] + ([fallback] if fallback and fallback != model and MODEL_NAME.match(fallback) else [])
+    payload = analysis.build_request(cv, job, language,
+                                     analysis.normalise_thinking_level(os.getenv("GEMINI_THINKING_LEVEL")))
     started = time.monotonic()
-    try:
-        response = requests.post(
-            GEMINI_URL.format(model=model),
-            headers={"x-goog-api-key": key, "Content-Type": "application/json"},
-            json=analysis.build_request(cv, job, language,
-                                        analysis.normalise_thinking_level(os.getenv("GEMINI_THINKING_LEVEL"))),
-            timeout=(GEMINI_CONNECT_TIMEOUT, GEMINI_READ_TIMEOUT),
-        )
-    except requests.Timeout:
-        log.warning("Gemini timed out after %.1f s", time.monotonic() - started)
-        return api_error("The AI service took too long to respond. Please try again.", 504)
-    except requests.RequestException as exc:
-        log.warning("Gemini request failed: %s", type(exc).__name__)
-        return api_error("AI service is unavailable. Check your API configuration or try again.", 502)
+    for attempt, current_model in enumerate(models):
+        try:
+            response = requests.post(
+                GEMINI_URL.format(model=current_model),
+                headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                json=payload,
+                timeout=(GEMINI_CONNECT_TIMEOUT, GEMINI_READ_TIMEOUT),
+            )
+        except requests.Timeout:
+            log.warning("Gemini timed out after %.1f s (model=%s)", time.monotonic() - started, current_model)
+            return api_error("The AI service took too long to respond. Please try again.", 504)
+        except requests.RequestException as exc:
+            log.warning("Gemini request failed: %s", type(exc).__name__)
+            return api_error("AI service is unavailable. Check your API configuration or try again.", 502)
+        if response.status_code in BUSY_STATUSES and attempt + 1 < len(models):
+            log.warning("Gemini model %s is busy (HTTP %s); trying fallback model %s",
+                        current_model, response.status_code, models[attempt + 1])
+            continue
+        model = current_model
+        break
 
     if not response.ok:
         # The error body is not logged: it is not needed and could contain request details.
-        log.warning("Gemini returned HTTP %s", response.status_code)
+        log.warning("Gemini returned HTTP %s (model=%s)", response.status_code, model)
+        if response.status_code == 503:
+            return api_error("The AI model is very busy right now. Please try again in a minute.", 503)
         if response.status_code == 429:
             return api_error("The AI service is busy (quota or rate limit reached). Please try again later.", 503)
         return api_error("AI service is unavailable. Check your API configuration or try again.", 502)
@@ -229,7 +244,7 @@ def analyze():
 
     log.info("Analysis done: model=%s language=%s score=%d duration=%.1fs",
              model, language, result["match_score"], time.monotonic() - started)
-    return jsonify(analysis=result, language=language, disclaimer=analysis.DISCLAIMER)
+    return jsonify(analysis=result, language=language, model=model, disclaimer=analysis.DISCLAIMER)
 
 
 if __name__ == "__main__":

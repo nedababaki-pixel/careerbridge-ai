@@ -1,6 +1,6 @@
 # Testing
 
-CareerBridge AI has **149 automated tests**. None of them call the real Gemini API: every AI answer is a recorded-style fake (`tests/fakes.py`), so the tests are free, fast, offline and need no API key.
+CareerBridge AI has **157 automated tests**. None of them call the real Gemini API: every AI answer is a recorded-style fake (`tests/fakes.py`), so the tests are free, fast, offline and need no API key.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
@@ -18,7 +18,7 @@ python -m pytest -m e2e             # browser and accessibility tests (about 30 
 | `tests/test_app.py` | 15 | The original v1 test suite: pages, health check, input validation, API key handling, model selection, prompt safety, error handling. Three tests were updated for the structured JSON answer; the rest are unchanged |
 | `tests/test_analysis.py` | 30 | Prompt and JSON schema, Swedish/English output, prompt-injection hardening, validation of AI answers (score clamping, invalid JSON, lists, length limits), score labels, blocked answers |
 | `tests/test_security.py` | 35 | Security headers and HSTS, no-store caching, no third-party resources, type checks, 413/404/405 as JSON, placeholder keys, model-name injection, Gemini timeouts and errors, Swedish output, **no CV text or key in logs**, no leaked internals on crashes, rate limiting, Gunicorn timeout check |
-| `tests/test_gemini_config.py` | 12 | Gemini thinking level (default `low`, configurable, can be left to the model) and the diagnostic script: success output, rejected key, unavailable model, fast timeouts, the key is never printed |
+| `tests/test_gemini_config.py` | 20 | Gemini thinking level (default `low`, configurable, can be left to the model), busy-model message and fallback model (used only for 503/429, not for other errors or timeouts), and the diagnostic script: success output, rejected key, unavailable model, fast timeouts, the key is never printed |
 | `tests/test_upload.py` | 21 | Real PDF and DOCX files (tables, truncation), uploads kept out of temp files, missing file, wrong extensions, renamed executables, damaged and encrypted PDFs, page limit, scanned PDFs, 5 MB limit, **zip bomb**, **XXE payload** |
 | `tests/e2e/test_ui.py` | 18 | Playwright + Chromium: page loads without console errors, browser validation, counters, full comparison, AI text inserted as text (XSS), Swedish option, PDF and DOCX upload, unsupported file, Nginx error pages, rate-limit message, cancel, copy, download, theme memory, clear, skip link, mobile layout |
 | `tests/e2e/test_dashboard.py` | 11 | v2.1 interface: uploaded-file card, removing a file, rejected upload, progress view while waiting and after errors, dashboard counters, suggestion checklist, reduced motion, navigation links, tablet and phone layouts |

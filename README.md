@@ -35,7 +35,7 @@ Built with **Python, Flask** and the **Google Gemini API**, and hosted with **Gu
 | AI | Google Gemini API, structured JSON output (default model `gemini-3.8-flash`) |
 | Files | pypdf, python-docx |
 | Frontend | HTML, CSS and JavaScript without frameworks or CDNs; self-hosted fonts |
-| Testing | pytest, Playwright (Chromium), axe-core – 149 tests, GitHub Actions CI |
+| Testing | pytest, Playwright (Chromium), axe-core – 157 tests, GitHub Actions CI |
 | Hosting | AWS EC2, Linux, Gunicorn, Nginx reverse proxy; v2 adds systemd and HTTPS with Let's Encrypt (configuration in `deploy/`, not yet live) |
 
 ## Run locally
@@ -56,7 +56,7 @@ Without a key the app still starts and explains that the AI key is not configure
 ```bash
 pip install -r requirements-dev.txt
 python -m playwright install chromium
-python -m pytest                    # 149 tests, no API key or internet needed
+python -m pytest                    # 157 tests, no API key or internet needed
 ```
 
 See [docs/TESTING.md](docs/TESTING.md) for what each suite covers.
