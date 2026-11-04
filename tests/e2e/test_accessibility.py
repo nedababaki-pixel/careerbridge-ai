@@ -32,3 +32,20 @@ def test_results_page_has_no_axe_violations(page, theme):
 def test_form_errors_have_no_axe_violations(page):
     page.click("#analyze")
     assert violations(page) == []
+
+
+def test_progress_view_has_no_axe_violations(page):
+    page.route("**/api/analyze", lambda route: None)  # keep the request waiting
+    page.click("#sample-button")
+    page.click("#analyze")
+    page.wait_for_selector("#progress:not([hidden])")
+    assert violations(page) == []
+
+
+def test_uploaded_file_card_has_no_axe_violations(page, tmp_path):
+    from tests.test_upload import make_pdf
+    path = tmp_path / "cv.pdf"
+    path.write_bytes(make_pdf())
+    page.set_input_files("#cv-file", str(path))
+    page.wait_for_selector("#upload-file:not([hidden])")
+    assert violations(page) == []

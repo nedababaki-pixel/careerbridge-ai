@@ -45,7 +45,7 @@ def test_character_counter_updates(page):
 
 def test_full_comparison_shows_structured_results(page):
     run_example(page)
-    assert page.text_content("#score-value") == str(FAKE_ANALYSIS["match_score"])
+    expect(page.locator("#score-value")).to_have_text(str(FAKE_ANALYSIS["match_score"]))  # after the count-up animation
     assert page.text_content("#score-label") == "Partial match"
     assert "AI estimate" in page.text_content("#score-text")
     assert "not a prediction" in page.text_content("#disclaimer")

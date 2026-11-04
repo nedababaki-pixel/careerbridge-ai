@@ -9,6 +9,7 @@ Run:  python -m pytest tests/e2e -v
 import os
 import socket
 import threading
+import time
 from unittest.mock import patch
 
 import pytest
@@ -18,6 +19,15 @@ sync_api = pytest.importorskip("playwright.sync_api", reason="Playwright is not 
 import app as app_module  # noqa: E402
 from tests.fakes import fake_response  # noqa: E402
 from werkzeug.serving import make_server  # noqa: E402
+
+
+# Tests can set GEMINI_DELAY["seconds"] to make the fake AI answer slow (server side, so the browser keeps running).
+GEMINI_DELAY = {"seconds": 0}
+
+
+def _fake_gemini(*args, **kwargs):
+    time.sleep(GEMINI_DELAY["seconds"])
+    return fake_response()
 
 
 def _free_port() -> int:
@@ -33,7 +43,7 @@ def base_url():
     port = _free_port()
     server = make_server("127.0.0.1", port, app_module.app, threaded=True)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
-    with patch("app.requests.post", side_effect=lambda *a, **k: fake_response()):
+    with patch("app.requests.post", side_effect=_fake_gemini):
         thread.start()
         yield f"http://127.0.0.1:{port}"
         server.shutdown()
@@ -71,3 +81,11 @@ def mobile_page(browser, base_url):
     pg.goto(base_url + "/")
     yield pg
     context.close()
+
+
+@pytest.fixture
+def slow_ai():
+    """Make the fake AI answer take a few seconds for this test only."""
+    GEMINI_DELAY["seconds"] = 4
+    yield
+    GEMINI_DELAY["seconds"] = 0

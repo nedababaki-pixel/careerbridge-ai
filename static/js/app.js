@@ -20,6 +20,13 @@
   const fileInput = $("cv-file");
   const uploadButton = $("upload-button");
   const dropzone = $("cv-dropzone");
+  const uploadEmpty = $("upload-empty");
+  const uploadFile = $("upload-file");
+  const uploadProgress = $("upload-progress");
+  const progress = $("progress");
+  const progressSteps = [...document.querySelectorAll("#progress-steps li")];
+  const progressTime = $("progress-time");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   let controller = null;
   let lastReport = null;
@@ -146,6 +153,29 @@ We think you have:
 
   // ---------- CV upload ----------
   uploadButton.addEventListener("click", () => fileInput.click());
+  $("upload-replace").addEventListener("click", () => fileInput.click());
+  $("upload-remove").addEventListener("click", () => {
+    showFile(null);
+    cv.value = "";
+    updateCount(cv);
+    statusLine.textContent = "The file and its text were removed.";
+    uploadButton.focus();
+  });
+
+  function formatSize(bytes) {
+    return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+  function showFile(info) {
+    uploadEmpty.hidden = Boolean(info);
+    uploadFile.hidden = !info;
+    dropzone.classList.toggle("has-file", Boolean(info));
+    if (!info) return;
+    $("upload-file-name").textContent = info.name;
+    const parts = [info.type.toUpperCase(), formatSize(info.size)];
+    if (info.pages) parts.push(`${info.pages} ${info.pages === 1 ? "page" : "pages"}`);
+    parts.push(`${formatCount(info.characters)} characters`);
+    $("upload-file-meta").textContent = parts.join(", ");
+  }
   fileInput.addEventListener("change", () => {
     if (fileInput.files.length) uploadCv(fileInput.files[0]);
     fileInput.value = "";
@@ -175,6 +205,7 @@ We think you have:
     const body = new FormData();
     body.append("file", file);
     uploadButton.disabled = true;
+    uploadProgress.hidden = false;
     statusLine.textContent = `Reading ${file.name}…`;
     try {
       const response = await fetch("/api/extract-cv", { method: "POST", body });
@@ -187,6 +218,7 @@ We think you have:
       cv.value = data.text;
       updateCount(cv);
       setFieldError(cv, "");
+      showFile({ name: file.name, size: file.size, type: data.file_type, pages: data.pages, characters: data.characters });
       const pages = data.pages ? ` (${data.pages} ${data.pages === 1 ? "page" : "pages"})` : "";
       statusLine.textContent = `Text from ${file.name}${pages} was added. Check it before you compare.`;
       if (data.truncated) {
@@ -198,6 +230,7 @@ We think you have:
       showAlert("The file could not be sent. Check your internet connection and try again.");
     } finally {
       uploadButton.disabled = false;
+      uploadProgress.hidden = true;
     }
   }
 
@@ -214,13 +247,37 @@ We think you have:
     job.value = "";
     [cv, job].forEach((f) => { updateCount(f); setFieldError(f, ""); });
     clearMessages();
+    showFile(null);
     results.hidden = true;
     lastReport = null;
     cv.focus();
   });
 
   // ---------- analysis ----------
+  let progressTimer = null;
+  function setProgress(isRunning) {
+    clearInterval(progressTimer);
+    progress.hidden = !isRunning;
+    if (!isRunning) return;
+    const started = Date.now();
+    const tick = () => {
+      const seconds = Math.floor((Date.now() - started) / 1000);
+      progressTime.textContent = `${seconds} s`;
+      let active = 0;
+      progressSteps.forEach((li, i) => { if (seconds >= Number(li.dataset.after)) active = i; });
+      progressSteps.forEach((li, i) => {
+        li.classList.toggle("is-done", i < active);
+        li.classList.toggle("is-active", i === active);
+      });
+    };
+    tick();
+    progressTimer = setInterval(tick, 500);
+    results.hidden = true;
+    progress.scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth", block: "center" });
+  }
+
   function setLoading(isLoading) {
+    setProgress(isLoading);
     analyzeButton.disabled = isLoading;
     analyzeButton.classList.toggle("is-loading", isLoading);
     analyzeButton.querySelector(".button-label").textContent = isLoading ? "Comparing…" : "Compare CV and job";
@@ -284,7 +341,7 @@ We think you have:
     const a = data.analysis;
     const score = Math.max(0, Math.min(100, Number(a.match_score) || 0));
     results.lang = data.language === "sv" ? "sv" : "en";
-    $("score-value").textContent = String(score);
+    countUp($("score-value"), score);
     $("score-label").textContent = a.score_label || "Match";
     $("score-explanation").textContent = a.score_explanation || "";
     $("disclaimer").textContent = data.disclaimer || "";
@@ -292,16 +349,50 @@ We think you have:
     $("summary").textContent = a.summary || "";
     fillList("matching-skills", "matching-empty", a.matching_skills || []);
     fillList("missing-skills", "missing-empty", a.missing_skills || []);
-    fillList("suggestions", null, a.suggestions || []);
-    $("cover-letter").textContent = a.cover_letter || "";
+    const suggestions = a.suggestions || [];
+    $("suggestions").replaceChildren(...suggestions.map((text, i) => {
+      const li = document.createElement("li");
+      const label = document.createElement("label");
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.id = `suggestion-${i}`;
+      const span = document.createElement("span");
+      span.textContent = text;
+      label.append(box, span);
+      li.append(label);
+      return li;
+    }));
+    $("count-found").textContent = String((a.matching_skills || []).length);
+    $("count-missing").textContent = String((a.missing_skills || []).length);
+    $("count-suggestions").textContent = String(suggestions.length);
+    const letter = a.cover_letter || "";
+    $("cover-letter").textContent = letter;
+    const words = letter.trim() ? letter.trim().split(/\s+/).length : 0;
+    $("letter-words").textContent = words ? `About ${words} words.` : "";
 
     const fill = $("arch-fill");
     fill.style.strokeDasharray = "0 100";
     results.hidden = false;
+    results.classList.remove("is-revealed");
+    void results.offsetWidth;
+    results.classList.add("is-revealed");
     requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.strokeDasharray = `${score} 100`; }));
     lastReport = buildReport(a, data.disclaimer);
-    results.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    results.scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
     results.focus({ preventScroll: true });
+  }
+
+  function countUp(el, target) {
+    if (reduceMotion.matches) { el.textContent = String(target); return; }
+    const start = performance.now();
+    const duration = 900;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) requestAnimationFrame(step);
+    };
+    el.textContent = "0";
+    requestAnimationFrame(step);
   }
 
   function buildReport(a, disclaimer) {

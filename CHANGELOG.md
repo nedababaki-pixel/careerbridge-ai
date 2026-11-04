@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.1.0 – 2026-11 (branch `feature/v2-ui-polish`)
+
+Interface polish for the portfolio submission. No backend or API changes.
+
+### Changed
+- New home page: clear headline, three-step "how it works" strip, example result preview, navigation and a privacy section.
+- CV upload area: drag-and-drop zone with an upload progress bar; after upload the file is shown as a card (type, size, pages, characters) with **Replace** and **Remove**.
+- Progress view while the AI works: elapsed time, progress steps and a loading skeleton, hidden again on success, error or cancel.
+- Results dashboard: score card with animated arch and count-up (off with reduced motion), "At a glance" counters, skill cards with icons, suggestions as a checklist, cover letter card with word count; download and edit actions at the top.
+- Tablet layout, refined spacing, icons (inline SVG, no icon library), focus states and print styles.
+
+### Added
+- 13 browser tests (137 in total): upload card, progress view, dashboard counters, checklist, reduced motion, navigation, tablet and phone layouts, accessibility of the new states.
+- `scripts/gemini_smoke_test.py` to check the real Gemini integration once with your own key.
+- `docs/DEMO.md` with a short demo script.
+
 ## 2.0.0 – 2026-11 (branch `feature/v2-improvements`)
 
 Improvement of the original internship application, keeping the same Flask architecture.
