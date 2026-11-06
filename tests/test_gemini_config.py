@@ -175,3 +175,37 @@ def test_timeout_is_not_retried(mock_post, client, monkeypatch):
     mock_post.side_effect = requests.Timeout()
     assert client.post("/api/analyze", json={"cv": CV, "job": JOB}).status_code == 504
     assert mock_post.call_count == 1
+
+
+
+# ---------- Gemini 2.x uses a thinking budget, Gemini 3 a thinking level ----------
+
+@pytest.mark.parametrize("model, level, expected", [
+    ("gemini-3.8-flash", "low", {"thinkingLevel": "low"}),
+    ("gemini-3.6-flash", "high", {"thinkingLevel": "high"}),
+    ("gemini-2.5-flash", "low", {"thinkingBudget": 1024}),
+    ("gemini-2.5-flash", "minimal", {"thinkingBudget": 0}),
+    ("gemini-2.5-pro", "minimal", {"thinkingBudget": 128}),
+    ("gemini-2.5-flash", None, None),
+])
+def test_thinking_config_matches_the_model_family(model, level, expected):
+    assert analysis.thinking_config(model, level) == expected
+
+
+@patch("app.requests.post")
+def test_gemini_2_model_gets_a_thinking_budget(mock_post, client, monkeypatch):
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-flash")
+    mock_post.return_value = fake_response()
+    client.post("/api/analyze", json={"cv": CV, "job": JOB})
+    assert sent_config(mock_post)["thinkingConfig"] == {"thinkingBudget": 1024}
+
+
+@patch("app.requests.post")
+def test_fallback_request_uses_the_fallback_models_format(mock_post, client, monkeypatch):
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")
+    mock_post.side_effect = [fake_response(status=503), fake_response()]
+    r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
+    first, second = (c.kwargs["json"]["generationConfig"]["thinkingConfig"] for c in mock_post.call_args_list)
+    assert first == {"thinkingLevel": "low"} and second == {"thinkingBudget": 1024}
+    assert r.get_json()["model"] == "gemini-2.5-flash"

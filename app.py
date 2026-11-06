@@ -18,7 +18,7 @@ import cv_extract
 
 load_dotenv()
 
-__version__ = "2.1.1"
+__version__ = "2.1.2"
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
@@ -185,15 +185,14 @@ def analyze():
     # try the optional fallback model once. Timeouts are not retried, to keep the wait short.
     fallback = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
     models = [model] + ([fallback] if fallback and fallback != model and MODEL_NAME.match(fallback) else [])
-    payload = analysis.build_request(cv, job, language,
-                                     analysis.normalise_thinking_level(os.getenv("GEMINI_THINKING_LEVEL")))
+    thinking_level = analysis.normalise_thinking_level(os.getenv("GEMINI_THINKING_LEVEL"))
     started = time.monotonic()
     for attempt, current_model in enumerate(models):
         try:
             response = requests.post(
                 GEMINI_URL.format(model=current_model),
                 headers={"x-goog-api-key": key, "Content-Type": "application/json"},
-                json=payload,
+                json=analysis.build_request(cv, job, language, thinking_level, current_model),
                 timeout=(GEMINI_CONNECT_TIMEOUT, GEMINI_READ_TIMEOUT),
             )
         except requests.Timeout:

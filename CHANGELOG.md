@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.2 – 2026-11
+
+### Fixed
+- Gemini 2.x models (for example `gemini-2.5-flash`) use `thinkingBudget` instead of `thinkingLevel`. The request now uses the right format for each model family, also for the fallback model. 8 new tests (165 in total).
+
 ## 2.1.1 – 2026-11
 
 ### Fixed

@@ -99,14 +99,16 @@ def main() -> int:
 
     url = f"{BASE}/models/{args.model}:generateContent"
     tiny = {"contents": [{"role": "user", "parts": [{"text": "Answer with the single word: OK"}]}]}
-    real = analysis.build_request(CV * 3, JOB * 2, "en", thinking_level="low")
+    low = analysis.thinking_config(args.model, "low")
+    real = analysis.build_request(CV * 3, JOB * 2, "en", thinking_level="low", model=args.model)
     checks = [
         ("3. Tiny answer, default thinking", tiny),
-        ("4. Tiny answer, thinking low    ", {**tiny, "generationConfig": {"thinkingConfig": {"thinkingLevel": "low"}}}),
+        ("4. Tiny answer, thinking low    ", {**tiny, "generationConfig": {"thinkingConfig": low}}),
         ("5. CareerBridge JSON, thinking low", real),
     ]
     if args.full:
-        checks.append(("6. CareerBridge JSON, default thinking", analysis.build_request(CV * 3, JOB * 2, "en", thinking_level=None)))
+        checks.append(("6. CareerBridge JSON, default thinking",
+                       analysis.build_request(CV * 3, JOB * 2, "en", thinking_level=None, model=args.model)))
 
     worked = {}
     for label, body in checks:

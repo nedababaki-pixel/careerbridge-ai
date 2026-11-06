@@ -107,15 +107,33 @@ def normalise_thinking_level(value) -> str | None:
     return value if value in THINKING_LEVELS else DEFAULT_THINKING_LEVEL
 
 
-def build_request(cv: str, job: str, language: str = "en", thinking_level: str | None = DEFAULT_THINKING_LEVEL) -> dict:
+# Gemini 2.x models do not accept "thinkingLevel"; they use a token budget instead.
+THINKING_BUDGETS = {"minimal": 0, "low": 1024, "medium": 8192, "high": 24576}
+
+
+def thinking_config(model: str, thinking_level: str | None) -> dict | None:
+    """thinkingConfig in the format the given model understands (None = model default)."""
+    if not thinking_level:
+        return None
+    if model.startswith("gemini-2"):
+        budget = THINKING_BUDGETS[thinking_level]
+        if budget == 0 and "pro" in model:  # Pro models cannot switch thinking off completely
+            budget = 128
+        return {"thinkingBudget": budget}
+    return {"thinkingLevel": thinking_level}
+
+
+def build_request(cv: str, job: str, language: str = "en", thinking_level: str | None = DEFAULT_THINKING_LEVEL,
+                  model: str = DEFAULT_MODEL) -> dict:
     """Request body for the Gemini generateContent endpoint."""
     config = {
         "responseMimeType": "application/json",
         "responseSchema": RESPONSE_SCHEMA,
         "temperature": 0.3,
     }
-    if thinking_level:
-        config["thinkingConfig"] = {"thinkingLevel": thinking_level}
+    thinking = thinking_config(model, thinking_level)
+    if thinking:
+        config["thinkingConfig"] = thinking
     return {
         "contents": [{"role": "user", "parts": [{"text": build_prompt(cv, job, language)}]}],
         "generationConfig": config,
