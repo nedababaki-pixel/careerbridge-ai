@@ -49,6 +49,8 @@ python app.py
 ```
 
 Open http://127.0.0.1:5055 and click **Try an example**.
+
+On Windows you can also double-click **`start-windows.bat`**: it starts the server in its own window and opens the browser. Close that window to stop the app.
 Without a key the app still starts and explains that the AI key is not configured.
 
 ## Run the tests
