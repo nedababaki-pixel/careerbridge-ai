@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.3 – 2026-11
+
+### Changed
+- Default model is now `gemini-3.6-flash`, with `gemini-3.8-flash` as fallback. Verified with a real API call (3.6 s, valid structured answer); `gemini-3.8-flash` was overloaded ("high demand") and `gemini-2.5-flash` is no longer available to new API users.
+
 ## 2.1.2 – 2026-11
 
 ### Fixed

@@ -8,7 +8,7 @@ import json
 import math
 import re
 
-DEFAULT_MODEL = "gemini-3.8-flash"
+DEFAULT_MODEL = "gemini-3.6-flash"  # verified with a real API call; 3.8 was overloaded
 
 # Output languages offered in the interface (code -> language name used in the prompt).
 LANGUAGES = {"en": "English", "sv": "Swedish"}

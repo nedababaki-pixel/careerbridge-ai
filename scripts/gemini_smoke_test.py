@@ -35,7 +35,7 @@ def main() -> int:
     if key.lower() in app_module.PLACEHOLDER_KEYS:
         print("GEMINI_API_KEY is not set. Add it to .env first (never commit .env).")
         return 2
-    print(f"Model: {os.getenv('GEMINI_MODEL', 'gemini-3.8-flash')}, thinking level: "
+    print(f"Model: {os.getenv('GEMINI_MODEL') or analysis.DEFAULT_MODEL}, thinking level: "
           f"{analysis.normalise_thinking_level(os.getenv('GEMINI_THINKING_LEVEL')) or 'model default'}  (key found, not shown)")
     app_module.limiter.enabled = False
     client = app_module.app.test_client()

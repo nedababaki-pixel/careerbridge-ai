@@ -21,6 +21,8 @@ SCRIPT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-key-not-real")
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    monkeypatch.delenv("GEMINI_FALLBACK_MODEL", raising=False)
     monkeypatch.delenv("GEMINI_THINKING_LEVEL", raising=False)
     app_module.limiter.enabled = False
     with app_module.app.test_client() as c:
@@ -133,20 +135,21 @@ def test_busy_model_gives_a_clear_message(mock_post, client, monkeypatch):
 
 @patch("app.requests.post")
 def test_fallback_model_is_used_when_the_main_model_is_busy(mock_post, client, monkeypatch, caplog):
-    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.8-flash")
     mock_post.side_effect = [busy(), fake_response()]
     r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
-    assert r.status_code == 200 and r.get_json()["model"] == "gemini-3.6-flash"
+    assert r.status_code == 200 and r.get_json()["model"] == "gemini-3.8-flash"
     urls = [c.args[0] for c in mock_post.call_args_list]
-    assert "models/gemini-3.8-flash:" in urls[0] and "models/gemini-3.6-flash:" in urls[1]
-    assert "trying fallback model gemini-3.6-flash" in caplog.text
+    assert "models/gemini-3.6-flash:" in urls[0] and "models/gemini-3.8-flash:" in urls[1]
+    assert "trying fallback model gemini-3.8-flash" in caplog.text
     assert "test-key-not-real" not in caplog.text
 
 
 @pytest.mark.parametrize("status", [400, 403, 500])
 @patch("app.requests.post")
 def test_fallback_is_not_used_for_other_errors(mock_post, client, monkeypatch, status):
-    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.8-flash")
     mock_post.return_value = fake_response(status=status)
     assert client.post("/api/analyze", json={"cv": CV, "job": JOB}).status_code == 502
     assert mock_post.call_count == 1
@@ -154,7 +157,7 @@ def test_fallback_is_not_used_for_other_errors(mock_post, client, monkeypatch, s
 
 @patch("app.requests.post")
 def test_both_models_busy_returns_503(mock_post, client, monkeypatch):
-    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.8-flash")
     mock_post.side_effect = [busy(), busy()]
     r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
     assert r.status_code == 503 and mock_post.call_count == 2
@@ -171,7 +174,7 @@ def test_invalid_fallback_name_is_ignored(mock_post, client, monkeypatch):
 @patch("app.requests.post")
 def test_timeout_is_not_retried(mock_post, client, monkeypatch):
     import requests
-    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-3.8-flash")
     mock_post.side_effect = requests.Timeout()
     assert client.post("/api/analyze", json={"cv": CV, "job": JOB}).status_code == 504
     assert mock_post.call_count == 1
@@ -209,3 +212,8 @@ def test_fallback_request_uses_the_fallback_models_format(mock_post, client, mon
     first, second = (c.kwargs["json"]["generationConfig"]["thinkingConfig"] for c in mock_post.call_args_list)
     assert first == {"thinkingLevel": "low"} and second == {"thinkingBudget": 1024}
     assert r.get_json()["model"] == "gemini-2.5-flash"
+
+
+
+def test_default_model_is_the_verified_one():
+    assert analysis.DEFAULT_MODEL == "gemini-3.6-flash"
