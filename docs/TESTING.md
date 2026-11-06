@@ -37,7 +37,7 @@ python -m pytest -m e2e             # browser and accessibility tests (about 30 
 |---|---|---|
 | Full stack (Nginx → Gunicorn → Flask) with HTTP→HTTPS redirect, TLS, headers, uploads, a 40-second AI answer and rate limiting | Local replica with a test certificate (see `docs/DEPLOYMENT.md`) | Passed |
 | `nginx -t`, `systemd-analyze verify`, `shellcheck` on the deployment files | Local | Passed |
-| Real Gemini answer with a real key | `python scripts/gemini_diagnose.py` (fast checks), then `python scripts/gemini_smoke_test.py` (English and Swedish) | `gemini-3.8-flash`: overloaded ("high demand"); `gemini-2.5-flash`: not available to new users; **`gemini-3.6-flash`: OK** – real structured answer in 3.6 s, parsed correctly (2026-11-06). Full English/Swedish smoke test: see below |
+| Real Gemini answer with a real key | `python scripts/gemini_diagnose.py` (fast checks), then `python scripts/gemini_smoke_test.py` (English and Swedish) | `gemini-3.8-flash`: overloaded ("high demand"); `gemini-2.5-flash`: not available to new users; **`gemini-3.6-flash`: OK** – real structured answer in 3.6 s, parsed correctly (2026-11-06). Full smoke test via the app (2026-11-06, two runs): **English OK** (4.4–5.1 s, score 82–85%) and **Swedish OK** (4.3–4.7 s, score 85%, Swedish text) |
 | Live EC2 server, security group, real Let's Encrypt certificate | `deploy/server_audit.sh`, `deploy/verify_deployment.sh` | **Not yet done** – needs AWS access and a domain |
 
 ## Regression tests for the bugs fixed in v2
