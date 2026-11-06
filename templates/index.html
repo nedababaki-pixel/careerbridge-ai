@@ -1,35 +1,274 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CareerBridge AI</title>
-<style>
-:root{font-family:Inter,system-ui,Arial,sans-serif;color:#f1f1fc;background:#0d1021}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top left,#26235b,#0d1021 65%);min-height:100vh}main{max-width:1050px;margin:auto;padding:52px 24px}header{margin-bottom:34px}.tag{color:#b6a8ff;letter-spacing:2px;font-weight:700;font-size:12px}h1{font-size:clamp(38px,6vw,70px);letter-spacing:-2px;margin:12px 0}h1 span{color:#ad94ff}p{color:#b8bdd4;line-height:1.6}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{background:#1a1e37;border:1px solid #383957;border-radius:18px;padding:22px}label{font-weight:700;display:block;margin-bottom:12px}textarea{width:100%;min-height:250px;resize:vertical;background:#101428;color:white;border:1px solid #484a6b;border-radius:12px;padding:16px;font:15px/1.5 inherit}textarea:focus{outline:2px solid #a994ff}button{background:#a58cff;color:#100d21;border:0;border-radius:12px;padding:16px 28px;font-size:16px;font-weight:800;cursor:pointer;margin-top:22px}button:disabled{opacity:.6;cursor:wait}
-#result{line-height:1.7;overflow-wrap:anywhere}
-#result h1,#result h2,#result h3{color:#d6ccff;margin:22px 0 8px}
-#result ul{padding-left:22px}
-#result li{margin:6px 0}
-#result hr{border:0;border-top:1px solid #383957;margin:22px 0}
-#result strong{color:#fff}
-#output{margin-top:24px}footer{font-size:12px;margin-top:32px;color:#9a9fb9}@media(max-width:700px){.grid{grid-template-columns:1fr}main{padding:32px 16px}}
-</style></head><body><main><header><div class="tag">✦ YOUR AI CAREER COPILOT</div><h1>CareerBridge <span>AI</span></h1><p>Turn your experience into opportunity. Compare your CV with a job opening and generate tailored application advice.</p></header><div class="grid"><section class="panel"><label for="cv">01 / Your CV</label><textarea id="cv" placeholder="Paste your CV text here..." maxlength="12000"></textarea></section><section class="panel"><label for="job">02 / Job description</label><textarea id="job" placeholder="Paste the job advertisement here..." maxlength="12000"></textarea></section></div><button id="analyze">✦ Analyze my match</button><section id="output" class="panel" hidden><h2>Your AI career report</h2><div id="result" role="status" aria-live="polite"></div></section><footer>AI-generated suggestions can be inaccurate. Review everything before applying. Avoid submitting sensitive personal data.</footer></main>
-<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-<script>
-const button=document.getElementById('analyze'),output=document.getElementById('output'),result=document.getElementById('result');
-button.addEventListener('click',async()=>{
-  output.hidden=false;
-  result.textContent='Analyzing your application…';
-  button.disabled=true;
-  try{
-    const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cv:document.getElementById('cv').value,job:document.getElementById('job').value})});
-    const data=await response.json();
-    if(response.ok){
-      result.innerHTML=DOMPurify.sanitize(marked.parse(data.result));
-    }else{
-      result.textContent=data.error||'Something went wrong.';
-    }
-  }catch{
-    result.textContent='Connection error. Please try again.';
-  }finally{
-    button.disabled=false;
-  }
-});
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CareerBridge AI – compare your CV with a job ad</title>
+  <meta name="description" content="Compare your CV with a job advertisement. Get an AI-estimated match score, the skills you already show, the gaps to close, CV suggestions and a cover letter draft.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#15142C">
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}?v={{ version }}" type="image/svg+xml">
+  <link rel="preload" href="{{ url_for('static', filename='fonts/bricolage-grotesque-latin-wght.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ version }}">
+  <script src="{{ url_for('static', filename='js/theme.js') }}?v={{ version }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ version }}" defer></script>
+</head>
+<body>
+  <svg class="icon-sprite" width="0" height="0" aria-hidden="true" focusable="false">
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4m0 0-4 4m4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Zm0 0v5h5M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-brief" viewBox="0 0 24 24"><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Zm0 4h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-gap" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6m-5 3h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-letter" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><path d="M9 9h10v11H9zM5 15V4h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8.4 7 10 4-1.6 7-5.5 7-10V6l-7-3Zm-3 9 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 4v16M7 20h10M5 8h14M5 8l-3 6h6L5 8Zm14 0-3 6h6l-3-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-9-9h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3Z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" fill="currentColor"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main">Skip to the form</a>
+
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="CareerBridge AI home">
+      <svg class="brand-mark" viewBox="0 0 40 24" aria-hidden="true" focusable="false">
+        <path d="M2 22 C 10 4, 30 4, 38 22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <path d="M2 22 H38" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <path d="M12 13.5 V22 M20 10 V22 M28 13.5 V22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>CareerBridge <span class="brand-ai">AI</span></span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="#analyze-form">Compare</a>
+      <a href="#privacy">Privacy</a>
+    </nav>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false">
+      <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg>
+      <span class="theme-toggle-label">Light theme</span>
+    </button>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">See how your CV lines up with the job.</h1>
+        <p class="hero-lead">Add your CV and a job advertisement. CareerBridge AI shows the skills you already prove, the requirements you don't show yet, how to improve your CV and a first cover letter draft.</p>
+        <ol class="steps" aria-label="How it works">
+          <li><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file"/></svg><span><strong>Add your CV</strong> Upload a PDF or DOCX, or paste the text</span></li>
+          <li><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-brief"/></svg><span><strong>Paste the job ad</strong> English or Swedish</span></li>
+          <li><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-scale"/></svg><span><strong>Get your comparison</strong> Usually in 10–40 seconds</span></li>
+        </ol>
+      </div>
+      <figure class="hero-preview" aria-hidden="true">
+        <div class="preview-card">
+          <div class="preview-score">
+            <svg viewBox="0 0 220 124"><path class="arch-track" d="M14 112 A96 96 0 0 1 206 112" pathLength="100"/><path class="arch-fill preview-fill" d="M14 112 A96 96 0 0 1 206 112" pathLength="100"/><line class="arch-deck" x1="6" y1="112" x2="214" y2="112"/></svg>
+            <p><span class="preview-number">72%</span><span class="score-tag">AI estimate</span></p>
+          </div>
+          <div class="preview-row"><span class="dot dot-found"></span>Active Directory</div>
+          <div class="preview-row"><span class="dot dot-found"></span>Windows Server</div>
+          <div class="preview-row"><span class="dot dot-missing"></span>ITIL Foundation</div>
+        </div>
+        <figcaption>Example result</figcaption>
+      </figure>
+    </section>
+
+    <form id="analyze-form" class="compare" novalidate aria-labelledby="compare-title">
+      <h2 id="compare-title" class="compare-title">Compare your CV with a job</h2>
+      <div class="columns">
+        <section class="field" aria-labelledby="cv-label">
+          <div class="field-head">
+            <label id="cv-label" for="cv">Your CV</label>
+            <span class="field-meta">Text is editable after upload</span>
+          </div>
+
+          <div class="upload" id="cv-dropzone">
+            <div class="upload-empty" id="upload-empty">
+              <svg class="icon upload-icon" aria-hidden="true" focusable="false"><use href="#i-upload"/></svg>
+              <p class="upload-title">Drop your CV here or <button type="button" class="link-button" id="upload-button" aria-describedby="upload-help">choose a file</button></p>
+              <p id="upload-help" class="hint">PDF or DOCX, up to 5 MB. The file is read once and not stored.</p>
+            </div>
+            <div class="upload-file" id="upload-file" hidden>
+              <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
+              <div class="upload-file-text">
+                <p class="upload-file-name" id="upload-file-name"></p>
+                <p class="hint" id="upload-file-meta"></p>
+              </div>
+              <button type="button" class="icon-button" id="upload-replace">Replace</button>
+              <button type="button" class="icon-button" id="upload-remove" aria-label="Remove file and CV text">
+                <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-close"/></svg>
+              </button>
+            </div>
+            <div class="upload-progress" id="upload-progress" hidden><span class="bar"></span></div>
+            <div class="drop-hint" aria-hidden="true">Drop to upload</div>
+            <input type="file" id="cv-file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+          </div>
+
+          <textarea id="cv" name="cv" rows="11" minlength="{{ min_chars }}" maxlength="{{ max_chars }}" required
+            placeholder="…or paste the text of your CV here."
+            aria-describedby="cv-count cv-error"></textarea>
+          <div class="field-foot">
+            <p class="hint">At least {{ min_chars }} characters.</p>
+            <p id="cv-count" class="count" aria-live="polite">0 / {{ "{:,}".format(max_chars) }}</p>
+          </div>
+          <p id="cv-error" class="field-error" hidden></p>
+        </section>
+
+        <section class="field" aria-labelledby="job-label">
+          <div class="field-head">
+            <label id="job-label" for="job">Job advertisement</label>
+            <span class="field-meta">English or Swedish</span>
+          </div>
+          <textarea id="job" name="job" class="job-text" rows="18" minlength="{{ min_chars }}" maxlength="{{ max_chars }}" required
+            placeholder="Paste the full job advertisement: the role, the requirements and what the employer offers."
+            aria-describedby="job-hint job-count job-error"></textarea>
+          <div class="field-foot">
+            <p id="job-hint" class="hint">Include the requirements section for the best result.</p>
+            <p id="job-count" class="count" aria-live="polite">0 / {{ "{:,}".format(max_chars) }}</p>
+          </div>
+          <p id="job-error" class="field-error" hidden></p>
+        </section>
+      </div>
+
+      <div class="actions">
+        <div class="language">
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-globe"/></svg>
+          <label for="language">Results in</label>
+          <select id="language" name="language">
+            <option value="en" selected>English</option>
+            <option value="sv" lang="sv">Svenska (Swedish)</option>
+          </select>
+        </div>
+        <div class="action-buttons">
+          <button type="button" class="button button-quiet" id="sample-button">Try an example</button>
+          <button type="button" class="button button-quiet" id="clear-button">Clear</button>
+          <button type="submit" class="button button-primary" id="analyze">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="button-label">Compare CV and job</span>
+          </button>
+          <button type="button" class="button button-quiet" id="cancel-button" hidden>Cancel</button>
+        </div>
+      </div>
+      <p id="form-status" class="status" role="status" aria-live="polite"></p>
+      <div id="form-alert" class="alert" role="alert" hidden></div>
+    </form>
+
+    <section class="progress" id="progress" aria-labelledby="progress-title" hidden>
+      <div class="progress-head">
+        <h2 id="progress-title">Working on your comparison</h2>
+        <p class="hint" id="progress-time">0 s</p>
+      </div>
+      <div class="progress-bar" aria-hidden="true"><span></span></div>
+      <ol class="progress-steps" id="progress-steps">
+        <li data-after="0">Sending your texts securely</li>
+        <li data-after="3">Comparing the CV with the requirements</li>
+        <li data-after="12">Writing suggestions and a cover letter</li>
+      </ol>
+      <div class="skeleton" aria-hidden="true">
+        <span class="sk sk-score"></span><span class="sk sk-wide"></span><span class="sk"></span><span class="sk"></span>
+      </div>
+    </section>
+
+    <section id="results" class="results" aria-labelledby="results-title" hidden tabindex="-1">
+      <div class="results-head">
+        <h2 id="results-title">Your comparison</h2>
+        <div class="results-tools">
+          <button type="button" class="button button-quiet button-small" id="download-report">
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"/></svg>Download report (.txt)
+          </button>
+          <button type="button" class="button button-quiet button-small" id="edit-again">
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-edit"/></svg>Edit and compare again
+          </button>
+        </div>
+      </div>
+
+      <div class="dash">
+        <article class="card card-score">
+          <div class="score">
+            <svg class="arch" viewBox="0 0 220 124" role="img" aria-labelledby="score-text">
+              <path class="arch-track" d="M14 112 A96 96 0 0 1 206 112" pathLength="100"/>
+              <path class="arch-fill" id="arch-fill" d="M14 112 A96 96 0 0 1 206 112" pathLength="100"/>
+              <line class="arch-deck" x1="6" y1="112" x2="214" y2="112"/>
+            </svg>
+            <div class="score-copy">
+              <p class="score-number"><span id="score-value">0</span><span class="score-unit">%</span></p>
+              <p id="score-text" class="score-label"><span id="score-label">Match</span> <span class="score-tag">AI estimate</span></p>
+            </div>
+          </div>
+          <p id="score-explanation" class="score-explanation"></p>
+          <p id="disclaimer" class="disclaimer"></p>
+        </article>
+
+        <article class="card card-glance" aria-labelledby="glance-title">
+          <h3 id="glance-title">At a glance</h3>
+          <dl class="stats">
+            <div class="stat stat-found"><dt>Skills found</dt><dd id="count-found">0</dd></div>
+            <div class="stat stat-missing"><dt>Gaps to close</dt><dd id="count-missing">0</dd></div>
+            <div class="stat"><dt>Suggestions</dt><dd id="count-suggestions">0</dd></div>
+          </dl>
+          <h3 class="summary-title">Summary</h3>
+          <p id="summary"></p>
+        </article>
+
+        <article class="card skills-found" aria-labelledby="found-title">
+          <h3 id="found-title"><span class="card-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span>Found in your CV</h3>
+          <ul id="matching-skills" class="chips"></ul>
+          <p class="empty" id="matching-empty" hidden>No clear matches were found.</p>
+        </article>
+
+        <article class="card skills-missing" aria-labelledby="missing-title">
+          <h3 id="missing-title"><span class="card-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-gap"/></svg></span>Asked for, but not shown in your CV</h3>
+          <ul id="missing-skills" class="chips"></ul>
+          <p class="empty" id="missing-empty" hidden>No missing requirements were found.</p>
+        </article>
+
+        <article class="card card-wide" aria-labelledby="suggest-title">
+          <h3 id="suggest-title"><span class="card-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bulb"/></svg></span>How to improve your CV for this job</h3>
+          <p class="hint">Tick a suggestion when you have updated your CV. Ticks are not saved.</p>
+          <ul id="suggestions" class="suggestions"></ul>
+        </article>
+
+        <article class="card card-wide letter" aria-labelledby="letter-title">
+          <div class="letter-head">
+            <h3 id="letter-title"><span class="card-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-letter"/></svg></span>Cover letter draft</h3>
+            <button type="button" class="button button-quiet button-small" id="copy-letter">Copy letter</button>
+          </div>
+          <p class="hint">A starting point only. Check every sentence and add details about the employer before you send it. <span id="letter-words"></span></p>
+          <div id="cover-letter" class="letter-body"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="privacy" id="privacy" aria-labelledby="privacy-title">
+      <h2 id="privacy-title">Built to be honest and private</h2>
+      <div class="privacy-grid">
+        <div>
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg>
+          <h3>Nothing is stored</h3>
+          <p>Your CV and the job ad are used once to create the comparison. Files are read in memory and never saved.</p>
+        </div>
+        <div>
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-scale"/></svg>
+          <h3>No invented experience</h3>
+          <p>The AI is told never to add qualifications you don't have. The score is an estimate, not a hiring decision.</p>
+        </div>
+        <div>
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-globe"/></svg>
+          <h3>Sent to Google Gemini</h3>
+          <p>The text is sent to the Google Gemini API over HTTPS. Leave out details you don't want to share, such as your personal identity number.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>AI suggestions can be wrong. Review everything before you use it in an application.</p>
+    <p class="version">CareerBridge AI, version {{ version }}</p>
+  </footer>
+</body>
+</html>
