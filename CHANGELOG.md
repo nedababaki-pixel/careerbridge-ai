@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.1 – 2026-11-09 (more reliable AI connection)
+
+### Changed
+- `GEMINI_FALLBACK_MODEL` can now be a comma-separated list (at most 3 are used). They are tried in order when a model is overloaded (503) or rate-limited (429). Default list: `gemini-3.5-flash,gemini-3.8-flash,gemini-3.5-flash-lite`; set the variable empty to switch fallback off. Reason: on 2026-11-09 both 3.6 and 3.8 were overloaded, while `gemini-3.5-flash` answered.
+- A dropped connection to Google (for example an `SSLError`) is retried once after 1 s, with a clearer message if it fails again. Timeouts are still not retried.
+- 5 new tests (174 in total).
+
 ## 2.2.0 – 2026-11-09 (final polish)
 
 ### Fixed

@@ -126,7 +126,7 @@ def test_gemini_timeout_is_below_gunicorn_timeout():
 
 @pytest.mark.parametrize("error, status", [(requests.Timeout(), 504), (requests.ConnectionError(), 502)])
 def test_network_problems_return_clear_errors(client, error, status):
-    with patch("app.requests.post", side_effect=error):
+    with patch("app.requests.post", side_effect=error), patch("app.time.sleep"):
         r = analyze(client)
     assert r.status_code == status and r.is_json
 

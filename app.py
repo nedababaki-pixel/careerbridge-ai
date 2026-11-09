@@ -18,7 +18,7 @@ import cv_extract
 
 load_dotenv()
 
-__version__ = "2.2.0"
+__version__ = "2.2.1"
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
@@ -37,6 +37,8 @@ GEMINI_READ_TIMEOUT = int(os.getenv("GEMINI_TIMEOUT", "90"))  # keep below Gunic
 PLACEHOLDER_KEYS = {"", "replace_with_your_key", "your_api_key", "changeme"}
 MODEL_NAME = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 BUSY_STATUSES = {429, 503}  # Gemini: rate limit / model overloaded ("high demand")
+MAX_FALLBACK_MODELS = 3      # at most 3 extra models are tried after the main one
+CONNECTION_RETRY_DELAY = 1.0  # seconds before retrying a dropped connection once
 
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; "
@@ -182,25 +184,39 @@ def analyze():
         return api_error("Server AI model is not configured correctly.", 503)
 
     # Try the main model first. If Google reports it as overloaded (503) or rate-limited (429),
-    # try the optional fallback model once. Timeouts are not retried, to keep the wait short.
-    fallback = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
-    models = [model] + ([fallback] if fallback and fallback != model and MODEL_NAME.match(fallback) else [])
+    # try the fallback models in order (comma-separated list). A dropped connection is retried
+    # once. Timeouts are not retried, to keep the wait short.
+    fallbacks = os.getenv("GEMINI_FALLBACK_MODEL")
+    if fallbacks is None:
+        fallbacks = analysis.DEFAULT_FALLBACK_MODELS
+    models = [model]
+    for name in (part.strip() for part in fallbacks.split(",")):
+        if name and MODEL_NAME.match(name) and name not in models and len(models) <= MAX_FALLBACK_MODELS:
+            models.append(name)
     thinking_level = analysis.normalise_thinking_level(os.getenv("GEMINI_THINKING_LEVEL"))
     started = time.monotonic()
     for attempt, current_model in enumerate(models):
-        try:
-            response = requests.post(
-                GEMINI_URL.format(model=current_model),
-                headers={"x-goog-api-key": key, "Content-Type": "application/json"},
-                json=analysis.build_request(cv, job, language, thinking_level, current_model),
-                timeout=(GEMINI_CONNECT_TIMEOUT, GEMINI_READ_TIMEOUT),
-            )
-        except requests.Timeout:
-            log.warning("Gemini timed out after %.1f s (model=%s)", time.monotonic() - started, current_model)
-            return api_error("The AI service took too long to respond. Please try again.", 504)
-        except requests.RequestException as exc:
-            log.warning("Gemini request failed: %s", type(exc).__name__)
-            return api_error("AI service is unavailable. Check your API configuration or try again.", 502)
+        for connection_try in (1, 2):
+            try:
+                response = requests.post(
+                    GEMINI_URL.format(model=current_model),
+                    headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                    json=analysis.build_request(cv, job, language, thinking_level, current_model),
+                    timeout=(GEMINI_CONNECT_TIMEOUT, GEMINI_READ_TIMEOUT),
+                )
+                break
+            except requests.Timeout:
+                log.warning("Gemini timed out after %.1f s (model=%s)", time.monotonic() - started, current_model)
+                return api_error("The AI service took too long to respond. Please try again.", 504)
+            except requests.ConnectionError as exc:
+                log.warning("Gemini connection failed (%s, try %d)", type(exc).__name__, connection_try)
+                if connection_try == 1:
+                    time.sleep(CONNECTION_RETRY_DELAY)
+                    continue
+                return api_error("Could not connect to the AI service. Check your internet connection and try again.", 502)
+            except requests.RequestException as exc:
+                log.warning("Gemini request failed: %s", type(exc).__name__)
+                return api_error("AI service is unavailable. Check your API configuration or try again.", 502)
         if response.status_code in BUSY_STATUSES and attempt + 1 < len(models):
             log.warning("Gemini model %s is busy (HTTP %s); trying fallback model %s",
                         current_model, response.status_code, models[attempt + 1])

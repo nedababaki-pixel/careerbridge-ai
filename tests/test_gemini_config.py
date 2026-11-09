@@ -126,11 +126,60 @@ def busy():
 
 @patch("app.requests.post")
 def test_busy_model_gives_a_clear_message(mock_post, client, monkeypatch):
-    monkeypatch.delenv("GEMINI_FALLBACK_MODEL", raising=False)
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "")  # empty = no fallback models
     mock_post.return_value = busy()
     r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
     assert r.status_code == 503 and "very busy" in r.get_json()["error"]
     assert mock_post.call_count == 1
+
+
+@patch("app.requests.post")
+def test_default_fallback_list_is_tried_in_order(mock_post, client):
+    mock_post.side_effect = [busy(), busy(), fake_response()]
+    r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
+    assert r.status_code == 200 and r.get_json()["model"] == "gemini-3.8-flash"
+    urls = [c.args[0] for c in mock_post.call_args_list]
+    assert ["gemini-3.6-flash" in urls[0], "gemini-3.5-flash" in urls[1], "gemini-3.8-flash" in urls[2]] == [True] * 3
+
+
+@patch("app.requests.post")
+def test_all_models_busy_gives_busy_message(mock_post, client):
+    mock_post.return_value = busy()
+    r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
+    assert r.status_code == 503 and "very busy" in r.get_json()["error"]
+    assert mock_post.call_count == 1 + app_module.MAX_FALLBACK_MODELS
+
+
+@patch("app.requests.post")
+def test_fallback_list_is_cleaned(mock_post, client, monkeypatch):
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.5-flash")
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL",
+                       " gemini-3.5-flash , bad/name, gemini-a,gemini-a, gemini-b,gemini-c,gemini-d")
+    mock_post.return_value = busy()
+    client.post("/api/analyze", json={"cv": CV, "job": JOB})
+    models = [c.args[0].split("models/")[1].split(":")[0] for c in mock_post.call_args_list]
+    assert models == ["gemini-3.5-flash", "gemini-a", "gemini-b", "gemini-c"]
+
+
+@patch("app.time.sleep")
+@patch("app.requests.post")
+def test_dropped_connection_is_retried_once(mock_post, mock_sleep, client, caplog):
+    import requests
+    mock_post.side_effect = [requests.exceptions.SSLError("eof"), fake_response()]
+    r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
+    assert r.status_code == 200 and mock_post.call_count == 2
+    assert "gemini-3.6-flash" in mock_post.call_args_list[1].args[0]
+    assert "test-key-not-real" not in caplog.text
+
+
+@patch("app.time.sleep")
+@patch("app.requests.post")
+def test_connection_failing_twice_gives_clear_message(mock_post, mock_sleep, client):
+    import requests
+    mock_post.side_effect = requests.ConnectionError()
+    r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
+    assert r.status_code == 502 and "internet connection" in r.get_json()["error"]
+    assert mock_post.call_count == 2
 
 
 @patch("app.requests.post")
