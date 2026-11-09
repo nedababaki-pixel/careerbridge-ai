@@ -366,7 +366,7 @@ We think you have:
     $("count-missing").textContent = String((a.missing_skills || []).length);
     $("count-suggestions").textContent = String(suggestions.length);
     const letter = a.cover_letter || "";
-    $("cover-letter").textContent = letter;
+    renderLetter(letter);
     const words = letter.trim() ? letter.trim().split(/\s+/).length : 0;
     $("letter-words").textContent = words ? `About ${words} words.` : "";
 
@@ -380,6 +380,24 @@ We think you have:
     lastReport = buildReport(a, data.disclaimer);
     results.scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
     results.focus({ preventScroll: true });
+  }
+
+  // Shows the letter as plain text, with [placeholders] highlighted (no innerHTML is used).
+  function renderLetter(letter) {
+    const box = $("cover-letter");
+    const parts = letter.split(/(\[[^\[\]\n]{1,60}\])/);
+    box.replaceChildren(...parts.filter(Boolean).map((part) => {
+      if (/^\[[^\[\]\n]{1,60}\]$/.test(part)) {
+        const mark = document.createElement("mark");
+        mark.textContent = part;
+        return mark;
+      }
+      return document.createTextNode(part);
+    }));
+    const count = box.querySelectorAll("mark").length;
+    $("letter-placeholders").textContent = count
+      ? `Replace the ${count} highlighted ${count === 1 ? "placeholder" : "placeholders"}, for example ${box.querySelector("mark").textContent}.`
+      : "No placeholders found. Still check names and details.";
   }
 
   function countUp(el, target) {

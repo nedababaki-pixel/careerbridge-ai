@@ -111,3 +111,31 @@ def test_phone_layout_stacks_the_dashboard(mobile_page):
     missing = mobile_page.locator(".skills-missing").bounding_box()
     assert missing["y"] > found["y"] + found["height"] - 1  # stacked, not side by side
     assert mobile_page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+
+
+def test_letter_placeholders_are_highlighted(page):
+    run_example(page)
+    marks = page.locator("#cover-letter mark")
+    expect(marks.first).to_have_text("[Hiring manager]")
+    expect(page.locator("#letter-placeholders")).to_contain_text(f"Replace the {marks.count()} highlighted")
+    # copying still gives the plain letter text
+    assert page.text_content("#cover-letter").startswith("Dear [Hiring manager],")
+
+
+def test_letter_highlighting_never_creates_html_from_ai_text(page):
+    from tests.fakes import FAKE_ANALYSIS as base
+    evil = {**base, "score_label": "Partial match",
+            "cover_letter": "Dear [<img src=x onerror=window.hacked=1>],\n\nText [Company name]."}
+    page.route("**/api/analyze", lambda route: route.fulfill(json={"analysis": evil, "language": "en", "disclaimer": "d"}))
+    run_example(page)
+    expect(page.locator("#cover-letter mark")).to_have_count(2)
+    assert page.locator("#cover-letter img").count() == 0
+    assert page.evaluate("window.hacked") is None
+
+
+def test_every_result_card_is_visible_when_printing(page):
+    run_example(page)
+    page.emulate_media(media="print")
+    opacities = page.eval_on_selector_all("#results .card", "cards => cards.map(c => getComputedStyle(c).opacity)")
+    assert opacities and all(o == "1" for o in opacities), opacities
+    assert page.locator(".compare").is_hidden() and page.locator(".letter-tips").is_hidden()

@@ -21,7 +21,7 @@ Built with **Python, Flask** and the **Google Gemini API**, and hosted with **Gu
 - **Results dashboard** – score card, counters for skills found and gaps, a checklist of CV suggestions and a cover letter card.
 - **Clear progress and errors** – a progress view while the AI works, a cancel button and plain-language error messages.
 - **Accessible, responsive interface** – desktop, tablet and phone layouts, dark and light themes, keyboard support, screen-reader friendly messages. No third-party scripts.
-- **Copy and download** – copy the cover letter or download the full report as a text file.
+- **Copy, download or print** – copy the cover letter (placeholders such as `[Company name]` are highlighted), download the report as a text file, or print / save it as PDF with Ctrl + P.
 
 | Uploaded CV | Progress | Phone | Light theme |
 |---|---|---|---|
@@ -35,7 +35,7 @@ Built with **Python, Flask** and the **Google Gemini API**, and hosted with **Gu
 | AI | Google Gemini API, structured JSON output (default model `gemini-3.6-flash`, fallback `gemini-3.8-flash`) |
 | Files | pypdf, python-docx |
 | Frontend | HTML, CSS and JavaScript without frameworks or CDNs; self-hosted fonts |
-| Testing | pytest, Playwright (Chromium), axe-core – 166 tests, GitHub Actions CI |
+| Testing | pytest, Playwright (Chromium), axe-core – 169 tests, GitHub Actions CI |
 | Hosting | AWS EC2, Linux, Gunicorn, Nginx reverse proxy; v2 adds systemd and HTTPS with Let's Encrypt (configuration in `deploy/`, not yet live) |
 
 ## Run locally
@@ -58,7 +58,7 @@ Without a key the app still starts and explains that the AI key is not configure
 ```bash
 pip install -r requirements-dev.txt
 python -m playwright install chromium
-python -m pytest                    # 166 tests, no API key or internet needed
+python -m pytest                    # 169 tests, no API key or internet needed
 ```
 
 See [docs/TESTING.md](docs/TESTING.md) for what each suite covers.

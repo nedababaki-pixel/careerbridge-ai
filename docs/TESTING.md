@@ -1,6 +1,6 @@
 # Testing
 
-CareerBridge AI has **166 automated tests**. None of them call the real Gemini API: every AI answer is a recorded-style fake (`tests/fakes.py`), so the tests are free, fast, offline and need no API key.
+CareerBridge AI has **169 automated tests**. None of them call the real Gemini API: every AI answer is a recorded-style fake (`tests/fakes.py`), so the tests are free, fast, offline and need no API key.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
@@ -21,7 +21,7 @@ python -m pytest -m e2e             # browser and accessibility tests (about 30 
 | `tests/test_gemini_config.py` | 29 | Gemini thinking level (Gemini 3: `thinkingLevel`, Gemini 2.x: `thinkingBudget`) (default `low`, configurable, can be left to the model), busy-model message and fallback model (used only for 503/429, not for other errors or timeouts), and the diagnostic script: success output, rejected key, unavailable model, fast timeouts, the key is never printed |
 | `tests/test_upload.py` | 21 | Real PDF and DOCX files (tables, truncation), uploads kept out of temp files, missing file, wrong extensions, renamed executables, damaged and encrypted PDFs, page limit, scanned PDFs, 5 MB limit, **zip bomb**, **XXE payload** |
 | `tests/e2e/test_ui.py` | 18 | Playwright + Chromium: page loads without console errors, browser validation, counters, full comparison, AI text inserted as text (XSS), Swedish option, PDF and DOCX upload, unsupported file, Nginx error pages, rate-limit message, cancel, copy, download, theme memory, clear, skip link, mobile layout |
-| `tests/e2e/test_dashboard.py` | 11 | v2.1 interface: uploaded-file card, removing a file, rejected upload, progress view while waiting and after errors, dashboard counters, suggestion checklist, reduced motion, navigation links, tablet and phone layouts |
+| `tests/e2e/test_dashboard.py` | 14 | v2.1/v2.2 interface: highlighted letter placeholders (inserted as text, no HTML), every card visible when printing, uploaded-file card, removing a file, rejected upload, progress view while waiting and after errors, dashboard counters, suggestion checklist, reduced motion, navigation links, tablet and phone layouts |
 | `tests/e2e/test_accessibility.py` | 7 | axe-core WCAG 2.1 A/AA rules on the start page, results page, error state, progress view and uploaded-file card, in dark and light themes |
 
 ## Continuous integration

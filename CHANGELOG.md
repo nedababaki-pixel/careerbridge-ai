@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.0 – 2026-11-09 (final polish)
+
+### Fixed
+- When printing or saving as PDF, the skill, suggestion and cover-letter cards could be invisible because their entrance animation had not finished. Print styles now always show every card.
+- With "reduce motion" switched on, animation delays still applied; they are now removed as well.
+
+### Changed
+- Cover letter card: placeholders such as `[Company name]` are highlighted (built with text nodes, never HTML) and a "Before you send it" checklist uses the empty space next to the letter; stacked on phones.
+- 3 new browser tests (169 in total). Screenshots updated.
+
 ## 2.1.3 – 2026-11
 
 ### Changed

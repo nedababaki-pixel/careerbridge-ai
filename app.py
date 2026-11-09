@@ -18,7 +18,7 @@ import cv_extract
 
 load_dotenv()
 
-__version__ = "2.1.3"
+__version__ = "2.2.0"
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
