@@ -1,0 +1,47 @@
+# systemd service for CareerBridge AI (Gunicorn).
+# Install:  sudo cp deploy/careerbridge.service /etc/systemd/system/
+#           sudo systemctl daemon-reload && sudo systemctl enable --now careerbridge
+# Logs:     journalctl -u careerbridge -f
+[Unit]
+Description=CareerBridge AI (Flask app served by Gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=careerbridge
+Group=careerbridge
+WorkingDirectory=/opt/careerbridge/app
+# Secrets live outside the code folder, readable only by root and the app user (chmod 640).
+EnvironmentFile=/etc/careerbridge/careerbridge.env
+Environment=TRUST_PROXY=1
+ExecStart=/opt/careerbridge/venv/bin/gunicorn -c deploy/gunicorn.conf.py app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+
+# Hardening: the app only needs to read its code and talk to the network.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+UMask=0077
+# Leave room for the OS on a 1 GB instance.
+MemoryMax=600M
+
+[Install]
+WantedBy=multi-user.target
