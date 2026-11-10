@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.2.2 – 2026-11-10 (final review)
+
+### Changed
+- Default model is now `gemini-3.5-flash`, the model verified in the real browser tests on 2026-11-09 (English and Swedish). Fallback list: `gemini-3.6-flash`, `gemini-3.8-flash`, `gemini-3.5-flash-lite`.
+- `gunicorn` has an upper version limit (`<27`), so a future major release cannot change the server unnoticed.
+- `server_audit.sh` also shows the Python versions and the existing app folder and Git commit.
+- Deployment guide: backup and rollback plan, DuckDNS steps, port-collision note. Architecture doc: model fallback flow and all settings. New `docs/HANDOVER.md`.
+
+### Checked
+- 174 tests pass; `pip-audit`: no known vulnerabilities; `bandit`: no issues.
+
 ## 2.2.1 – 2026-11-09 (more reliable AI connection)
 
 ### Changed

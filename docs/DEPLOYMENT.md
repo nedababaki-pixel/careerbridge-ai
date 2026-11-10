@@ -2,7 +2,7 @@
 
 This guide explains how to check the existing CareerBridge AI server safely and how to deploy version 2 with HTTPS.
 
-> **Nothing in this guide has been run against the live server yet.** Part 1 is read-only. Parts 2–5 change the server and should only be carried out after the read-only check and an explicit decision.
+> **Nothing in this guide has been run against the live server yet.** Parts 1 and 6 are read-only. Parts 4 and 5 change the server and should only be carried out after the read-only check and an explicit decision.
 
 ```
 Browser ──HTTPS 443──▶ Nginx (TLS, HTTP→HTTPS redirect, rate limit) ──HTTP 127.0.0.1:8000──▶ Gunicorn ──▶ Flask app ──HTTPS──▶ Gemini API
@@ -91,9 +91,53 @@ Every option also needs a stable public IPv4 address. AWS charges for public IPv
 
 **Recommendation:** option A, or option B if you do not want to pay for a domain. Both use the configuration in this folder unchanged.
 
+### Option B step by step (DuckDNS)
+
+1. Allocate an **Elastic IP** and associate it with the instance (no extra cost while it is attached; the old auto-assigned address is released).
+2. Sign in at duckdns.org, create a subdomain (for example `careerbridge-<name>.duckdns.org`) and set its IPv4 to the Elastic IP. Keep the DuckDNS token private – it is not needed on the server, because the IP no longer changes.
+3. Check from your own computer: `nslookup careerbridge-<name>.duckdns.org` must show the Elastic IP.
+4. Continue with Part 5, using that name as `<your-domain>`.
+
 ---
 
-## Part 4 – Deploy version 2 (changes the server – only after approval)
+## Part 4 – Backup before any change (only after approval)
+
+Version 1 keeps running until version 2 has passed its checks, so the site is never left half-changed.
+
+| Layer | What is saved | How | Cost |
+|---|---|---|---|
+| Whole disk | Complete EBS volume of the instance | **EC2 → Volumes → Create snapshot** (name: `careerbridge-before-v2-<date>`). Wait until the state is *completed* | about $0.05 per GB-month (8 GB ≈ $0.40/month); delete the snapshot when version 2 has run without problems for a few weeks |
+| App files | Old app folder, Nginx configuration, service files | The commands below, on the server | free (stays on the disk) |
+| Network | Security group rules, public IP, DNS | Screenshot or copy of the inbound rules and the current public IP | free |
+
+```bash
+# On the server, before changing anything (read the output, nothing is deleted)
+B=/root/careerbridge-backup-$(date +%Y%m%d-%H%M)
+sudo mkdir -p "$B"
+sudo tar -czf "$B/nginx.tgz" /etc/nginx
+sudo tar -czf "$B/systemd.tgz" /etc/systemd/system/*.service 2>/dev/null
+sudo tar -czf "$B/app-v1.tgz" --exclude='.venv' --exclude='venv' <old-app-folder>    # from server_audit.sh
+sudo crontab -l > "$B/root-crontab.txt" 2>/dev/null; crontab -l > "$B/user-crontab.txt" 2>/dev/null
+ps -eo user,pid,cmd | grep -E "[g]unicorn|[p]ython" > "$B/processes.txt"
+sudo ls -la "$B"
+```
+
+The old `.env` stays where it is and is never copied into the backup archive's name, Git or chat.
+
+### Rollback plan
+
+| Problem after the change | Back to a working state |
+|---|---|
+| Version 2 does not start (`systemctl status careerbridge` fails) | `sudo systemctl disable --now careerbridge`, then start version 1 the same way it ran before (command saved in `processes.txt`) |
+| Nginx configuration error | `sudo tar -xzf $B/nginx.tgz -C /` then `sudo nginx -t && sudo systemctl reload nginx` |
+| A later app update breaks something | `sudo -u careerbridge git -C /opt/careerbridge/app checkout <previous-commit>` and `sudo systemctl restart careerbridge` |
+| Certificate or DNS problem | Nginx bootstrap config (HTTP only) keeps the site reachable while the certificate is fixed |
+| Server unusable | Create a volume from the snapshot and attach it, or launch a new instance from the snapshot |
+| Elastic IP no longer wanted | Disassociate **and release** it, otherwise AWS charges for an unattached address |
+
+---
+
+## Part 5 – Deploy version 2 (changes the server – only after approval)
 
 Commands are for **Amazon Linux 2023** (`dnf`). On Ubuntu use `apt` and `python3`.
 CareerBridge needs **Python 3.10 or newer**; Amazon Linux 2023's default `python3` is 3.9, so install `python3.11`.
@@ -114,7 +158,8 @@ sudo mkdir -p /etc/careerbridge
 sudo install -m 640 -o root -g careerbridge /opt/careerbridge/app/.env.example /etc/careerbridge/careerbridge.env
 sudo nano /etc/careerbridge/careerbridge.env      # set GEMINI_API_KEY=...
 
-# 4. App service
+# 4. App service. If version 1 still listens on 127.0.0.1:8000 (see server_audit.sh), stop it first
+#    with the command that started it (saved in processes.txt) - otherwise the ports collide.
 sudo cp /opt/careerbridge/app/deploy/careerbridge.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now careerbridge
 curl -s http://127.0.0.1:8000/health            # {"status":"ok"}
@@ -150,13 +195,9 @@ sudo -u careerbridge /opt/careerbridge/venv/bin/pip install -r requirements.txt
 sudo systemctl restart careerbridge
 ```
 
-### Rollback
-
-The original version is preserved in Git history. `sudo -u careerbridge git checkout <previous-commit>` followed by `sudo systemctl restart careerbridge` returns to it.
-
 ---
 
-## Part 5 – Verify (read-only, from your own computer)
+## Part 6 – Verify (read-only, from your own computer)
 
 ```bash
 bash deploy/verify_deployment.sh <your-domain>
