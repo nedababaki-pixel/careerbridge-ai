@@ -158,10 +158,14 @@ sudo mkdir -p /etc/careerbridge
 sudo install -m 640 -o root -g careerbridge /opt/careerbridge/app/.env.example /etc/careerbridge/careerbridge.env
 sudo nano /etc/careerbridge/careerbridge.env      # set GEMINI_API_KEY=...
 
-# 4. App service. If version 1 still listens on 127.0.0.1:8000 (see server_audit.sh), stop it first
+# 4. App service. Version 1 on CloudCare-Web already runs as a systemd unit with the SAME name
+#    (careerbridge.service, user ec2-user, /home/ec2-user/careerbridge-ai). The backup in Part 4 saves that
+#    unit file; copying the new unit replaces it, and the restart below stops version 1 and starts version 2.
+#    Rollback: restore the old unit from systemd.tgz, then daemon-reload and restart careerbridge.
+#    If version 1 still listens on 127.0.0.1:8000 (see server_audit.sh), stop it first
 #    with the command that started it (saved in processes.txt) - otherwise the ports collide.
 sudo cp /opt/careerbridge/app/deploy/careerbridge.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now careerbridge
+sudo systemctl daemon-reload && sudo systemctl enable careerbridge && sudo systemctl restart careerbridge
 curl -s http://127.0.0.1:8000/health            # {"status":"ok"}
 
 # 5. First certificate (option A/B). Point the domain's A record to the server first.
