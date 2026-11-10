@@ -18,8 +18,9 @@ flowchart LR
 1. **Page** – `GET /` renders `templates/index.html`. CSS, JavaScript and fonts are served from `/static` (no CDNs).
 2. **Optional upload** – `POST /api/extract-cv` (multipart, one file). `cv_extract.py` checks the type, reads the text in memory and returns it. The text is placed in the CV field so the user can review and edit it before anything is sent to the AI.
 3. **Comparison** – `POST /api/analyze` with `{"cv", "job", "language"}`. The app validates the input, builds the prompt and JSON schema (`analysis.py`) and calls Gemini.
-4. **Validation** – Gemini's JSON answer is validated and normalised (`analysis.parse_result`) before it is returned to the browser.
-5. **Display** – `static/js/app.js` renders the score, skills, suggestions and cover letter with `textContent` only.
+4. **Model fallback** – if Google answers `503` (model overloaded) or `429` (rate limit), the next model in `GEMINI_FALLBACK_MODEL` is tried (at most 3, in order). A dropped connection (for example an SSL error) is retried once after 1 s. Timeouts are never retried, so a user waits at most one timeout. The response says which model answered.
+5. **Validation** – Gemini's JSON answer is validated and normalised (`analysis.parse_result`) before it is returned to the browser.
+6. **Display** – `static/js/app.js` renders the score, skills, suggestions and cover letter with `textContent` only.
 
 ## API
 
@@ -27,7 +28,7 @@ flowchart LR
 |---|---|---|---|
 | `GET` | `/health` | – | `{"status": "ok"}` |
 | `POST` | `/api/extract-cv` | `multipart/form-data`, field `file` (PDF or DOCX, ≤ 5 MB) | `{"text", "characters", "truncated", "file_type", "pages"}` |
-| `POST` | `/api/analyze` | `{"cv": str, "job": str, "language": "en" \| "sv"}` | `{"analysis": {...}, "language", "disclaimer"}` |
+| `POST` | `/api/analyze` | `{"cv": str, "job": str, "language": "en" \| "sv"}` | `{"analysis": {...}, "language", "model", "disclaimer"}` |
 
 `analysis` contains `match_score` (0–100), `score_label`, `score_explanation`, `summary`, `matching_skills`, `missing_skills`, `suggestions` and `cover_letter`.
 
@@ -41,7 +42,7 @@ Every API error is JSON: `{"error": "<message for the user>"}`.
 | 422 | File cannot be read (damaged, encrypted, scanned, too many pages) or the AI refused the text |
 | 429 | Rate limit reached |
 | 502 | AI service error or unusable AI answer |
-| 503 | API key not configured, or AI quota reached |
+| 503 | API key not configured, or every model tried is overloaded / rate-limited |
 | 504 | AI service too slow |
 
 ## Modules
@@ -58,7 +59,7 @@ Every API error is JSON: `{"error": "<message for the user>"}`.
 
 ## Configuration
 
-All settings are environment variables (see `.env.example`): `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_TIMEOUT`, `TRUST_PROXY`, `RATE_LIMIT_ANALYZE`, `RATE_LIMIT_UPLOAD`, `RATELIMIT_STORAGE_URI`, `LOG_LEVEL`, `PORT`.
+All settings are environment variables (see `.env.example`): `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`, `GEMINI_THINKING_LEVEL`, `GEMINI_TIMEOUT`, `TRUST_PROXY`, `RATE_LIMIT_ANALYZE`, `RATE_LIMIT_UPLOAD`, `RATELIMIT_STORAGE_URI`, `LOG_LEVEL`, `PORT`.
 
 ## Timeouts
 

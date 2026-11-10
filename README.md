@@ -32,7 +32,7 @@ Built with **Python, Flask** and the **Google Gemini API**, and hosted with **Gu
 | Area | Technology |
 |---|---|
 | Backend | Python 3.10+, Flask, Flask-Limiter, requests |
-| AI | Google Gemini API, structured JSON output (default model `gemini-3.6-flash`, fallback `gemini-3.8-flash`) |
+| AI | Google Gemini API, structured JSON output (default model `gemini-3.5-flash`; if a model is overloaded, fallback models are tried in order) |
 | Files | pypdf, python-docx |
 | Frontend | HTML, CSS and JavaScript without frameworks or CDNs; self-hosted fonts |
 | Testing | pytest, Playwright (Chromium), axe-core – 174 tests, GitHub Actions CI |
@@ -102,7 +102,7 @@ deploy/                Gunicorn, systemd, Nginx, Certbot and check scripts
 docs/                  Architecture, security, testing, deployment, screenshots
 ```
 
-Architecture and API reference: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Version history: [CHANGELOG.md](CHANGELOG.md).
+Architecture and API reference: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Project status and handover: [docs/HANDOVER.md](docs/HANDOVER.md). Version history: [CHANGELOG.md](CHANGELOG.md).
 
 ## Limitations
 

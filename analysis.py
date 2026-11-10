@@ -8,11 +8,11 @@ import json
 import math
 import re
 
-DEFAULT_MODEL = "gemini-3.6-flash"  # verified with a real API call; 3.8 was overloaded
+DEFAULT_MODEL = "gemini-3.5-flash"  # verified with real browser tests (English and Swedish) on 2026-11-09
 # Tried in order when the main model is overloaded. Google's "high demand" moves between models
-# from hour to hour, so a short list keeps the app working. gemini-3.5-flash answered a real call
-# on 2026-11-09 while 3.6 and 3.8 were overloaded.
-DEFAULT_FALLBACK_MODELS = "gemini-3.5-flash,gemini-3.8-flash,gemini-3.5-flash-lite"
+# from hour to hour, so a short list keeps the app working. On 2026-11-09 gemini-3.5-flash answered
+# while 3.6 and 3.8 were overloaded; gemini-3.6-flash answered on 2026-11-06.
+DEFAULT_FALLBACK_MODELS = "gemini-3.6-flash,gemini-3.8-flash,gemini-3.5-flash-lite"
 
 # Output languages offered in the interface (code -> language name used in the prompt).
 LANGUAGES = {"en": "English", "sv": "Swedish"}

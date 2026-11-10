@@ -118,7 +118,7 @@ def test_successful_analysis_uses_default_model_and_header_key(mock_post, client
     assert "AI estimate" in body["disclaimer"]
     url = mock_post.call_args.args[0]
     headers = mock_post.call_args.kwargs["headers"]
-    assert "models/gemini-3.6-flash:generateContent" in url  # default changed from 3.8 (overloaded) in v2.1.3
+    assert "models/gemini-3.5-flash:generateContent" in url  # default: the model verified in real tests (v2.2.2)
     assert headers["x-goog-api-key"] == "test-key-not-real"
     assert "test-key-not-real" not in url  # key is sent in a header, never in the URL
 

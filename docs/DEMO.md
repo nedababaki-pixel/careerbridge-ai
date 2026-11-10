@@ -1,51 +1,62 @@
-# Demo guide (about 5 minutes)
+# Live demo script (about 5 minutes)
 
-A short script for showing CareerBridge AI in a meeting or interview.
+A simple script for showing CareerBridge AI in a meeting, presentation or interview.
 
-## Before the demo
+## Before the demo (10 minutes earlier)
 
 ```bash
-git checkout feature/v2-ui-polish        # or main, once the pull request is merged
+git checkout main
 pip install -r requirements.txt
 python scripts/gemini_smoke_test.py      # optional: proves the real Gemini connection works (needs GEMINI_API_KEY in .env)
 python app.py                            # open http://127.0.0.1:5055
 ```
 
-Without an API key the whole interface still works, and the app clearly says that the AI key is not configured. For a demo without a key, show the automated tests and the screenshots in `docs/screenshots/` instead.
+On Windows, double-click `start-windows.bat` instead. Keep the server window open and never press Ctrl+C in it – that stops the server.
 
-## 1. The problem (30 s)
+- Run one comparison first, so you know Gemini answers today.
+- Have a CV (PDF) and a job ad ready.
+- Never show the `.env` file or the API key on screen.
 
-"Job seekers often don't know which requirements in a job ad their CV actually proves. CareerBridge AI compares the two texts and gives an honest overview."
+## 1. Introduce the demo (20 s)
 
-## 2. Upload a CV (1 min)
+"Now I will show the app live. It runs on my laptop and uses the real Google Gemini API."
+
+## 2. Upload a CV (40 s)
 
 1. Drag a PDF or DOCX onto **Drop your CV here** (or click **choose a file**).
-2. Point out the file card (type, size, pages) and that the text appears in the field so you can check it before anything is sent.
-3. Mention: the file is read in memory and never stored; only PDF and DOCX up to 5 MB are accepted, and the real file content is checked, not just the file name.
+2. "The text appears in the field, so I can check it before anything is sent. The file is read in memory and never saved. Only PDF and DOCX up to 5 MB are accepted, and the real file content is checked."
 
 Tip: **Try an example** fills in a fictional CV and job ad.
 
-## 3. Compare (1 min)
+## 3. Paste the job ad and compare (1 min)
 
-1. Choose **Results in: Svenska** to show Swedish output, or keep English.
-2. Click **Compare CV and job**. Show the progress view and the **Cancel** button.
+1. Paste the job ad.
+2. Keep **English**, or choose **Svenska** to show Swedish results.
+3. Click **Compare CV and job**. "Now the text goes to Google Gemini. It usually takes about five seconds." Point at the progress view and the **Cancel** button.
 
-## 4. The results dashboard (1.5 min)
+## 4. Go through the result (1 min 30 s)
 
-- The **score** is labelled *AI estimate* – it is not a hiring prediction.
-- **At a glance**: skills found, gaps to close, number of suggestions.
-- **Found in your CV** (green) and **Asked for, but not shown** (amber).
-- **Suggestions** can be ticked off as you update the CV.
-- **Cover letter draft**: copy it, or **Download report (.txt)**.
+- "The **score** is only an AI estimate, not a hiring decision."
+- "**Green** skills are in my CV. **Orange** skills are asked for but missing."
+- "The **suggestions** are a checklist I can tick off."
 
-## 5. Behind the scenes (1 min)
+## 5. The cover letter (1 min)
 
-- Flask backend, Google Gemini with a JSON schema, validation of every AI answer.
-- Security: API key only on the server, strict Content-Security-Policy, rate limiting, no CV text in logs, HTTPS-only deployment config.
-- 137 automated tests (pytest, Playwright, axe-core) running in GitHub Actions on every pull request.
-- Deployment: AWS EC2, Nginx reverse proxy, Gunicorn, systemd, Let's Encrypt (configuration prepared in `deploy/`).
+"The placeholders such as [Company name] are highlighted, so I can see what to change. I can copy the letter, download the report, or save it as a PDF with Ctrl + P."
+
+## 6. Finish (10 s)
+
+"Thank you for listening! Do you have any questions?"
+
+## If something goes wrong
+
+| Problem | What to do and say |
+|---|---|
+| "The AI model is very busy" | "Google's models are sometimes overloaded – that is why the app tries fallback models." Wait a minute and try again |
+| "The server could not be reached" | The local server stopped. Run `python app.py` again and reload the page |
+| No internet | Show the screenshots in `docs/screenshots/` and the green tests in GitHub Actions |
 
 ## Honest status
 
-- Version 1 ran on AWS EC2. Version 2 is finished in GitHub and tested, but **not yet deployed** to the server.
-- The real Gemini answers have been tested with fake responses in the automated tests; a real-key check is done with `scripts/gemini_smoke_test.py`.
+- 174 automated tests pass in GitHub Actions. Real Gemini answers were verified in English and Swedish on 2026-11-09.
+- Version 1 ran on AWS EC2. Version 2 runs locally and is ready for deployment, but is **not yet deployed** to AWS.

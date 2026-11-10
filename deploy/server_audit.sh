@@ -23,6 +23,15 @@ echo "Expected: nginx on 0.0.0.0:80 and :443, gunicorn ONLY on 127.0.0.1:8000, n
 section "Application processes"
 ps -eo user,pid,etime,cmd 2>/dev/null | grep -E "[g]unicorn|[f]lask|[p]ython3? .*app\.py" || echo "No gunicorn/flask process found."
 
+section "Python and the existing app"
+for py in python3 python3.11 python3.12; do have "$py" && echo "$py: $($py --version 2>&1)"; done
+echo "CareerBridge needs Python 3.10 or newer."
+for d in "$HOME/careerbridge-ai" /home/*/careerbridge-ai /opt/careerbridge/app /var/www/careerbridge*; do
+  [ -d "$d" ] || continue
+  echo "App folder: $d ($(du -sh "$d" 2>/dev/null | cut -f1))"
+  [ -d "$d/.git" ] && echo "  git: $(git -C "$d" log -1 --format='%h %ad %s' --date=short 2>/dev/null)  branch: $(git -C "$d" rev-parse --abbrev-ref HEAD 2>/dev/null)"
+done
+
 section "systemd services"
 for unit in careerbridge nginx; do
   if systemctl list-unit-files "$unit.service" >/dev/null 2>&1 && systemctl list-unit-files "$unit.service" | grep -q "$unit"; then

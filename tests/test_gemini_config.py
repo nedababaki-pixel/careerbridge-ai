@@ -139,7 +139,7 @@ def test_default_fallback_list_is_tried_in_order(mock_post, client):
     r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
     assert r.status_code == 200 and r.get_json()["model"] == "gemini-3.8-flash"
     urls = [c.args[0] for c in mock_post.call_args_list]
-    assert ["gemini-3.6-flash" in urls[0], "gemini-3.5-flash" in urls[1], "gemini-3.8-flash" in urls[2]] == [True] * 3
+    assert ["gemini-3.5-flash" in urls[0], "gemini-3.6-flash" in urls[1], "gemini-3.8-flash" in urls[2]] == [True] * 3
 
 
 @patch("app.requests.post")
@@ -168,7 +168,7 @@ def test_dropped_connection_is_retried_once(mock_post, mock_sleep, client, caplo
     mock_post.side_effect = [requests.exceptions.SSLError("eof"), fake_response()]
     r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
     assert r.status_code == 200 and mock_post.call_count == 2
-    assert "gemini-3.6-flash" in mock_post.call_args_list[1].args[0]
+    assert "gemini-3.5-flash" in mock_post.call_args_list[1].args[0]
     assert "test-key-not-real" not in caplog.text
 
 
@@ -190,7 +190,7 @@ def test_fallback_model_is_used_when_the_main_model_is_busy(mock_post, client, m
     r = client.post("/api/analyze", json={"cv": CV, "job": JOB})
     assert r.status_code == 200 and r.get_json()["model"] == "gemini-3.8-flash"
     urls = [c.args[0] for c in mock_post.call_args_list]
-    assert "models/gemini-3.6-flash:" in urls[0] and "models/gemini-3.8-flash:" in urls[1]
+    assert "models/gemini-3.5-flash:" in urls[0] and "models/gemini-3.8-flash:" in urls[1]
     assert "trying fallback model gemini-3.8-flash" in caplog.text
     assert "test-key-not-real" not in caplog.text
 
@@ -265,4 +265,4 @@ def test_fallback_request_uses_the_fallback_models_format(mock_post, client, mon
 
 
 def test_default_model_is_the_verified_one():
-    assert analysis.DEFAULT_MODEL == "gemini-3.6-flash"
+    assert analysis.DEFAULT_MODEL == "gemini-3.5-flash"
